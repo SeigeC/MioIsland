@@ -548,14 +548,14 @@ struct CollapsedNotchContent: View {
                 .frame(width: 14, height: 14)
                 .matchedGeometryEffect(id: "crab", in: activityNamespace, isSource: true)
 
-            // Center: project name (white) + status (colored)
+            // Center: project name (white) + status (colored) — pixel font style
             if let parts = activityTextParts {
                 HStack(spacing: 3) {
                     Text(parts.project)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundColor(.white.opacity(0.8))
                     Text(parts.status)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundStyle(statusGradient)
                 }
                 .lineLimit(1)

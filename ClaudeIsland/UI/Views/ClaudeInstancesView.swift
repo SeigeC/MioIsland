@@ -292,12 +292,18 @@ struct InstanceRow: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 8) {
-                // Glow dot
-                Circle()
-                    .fill(accentColor)
-                    .frame(width: 6, height: 6)
-                    .shadow(color: accentColor.opacity(0.6), radius: 4)
-                    .shadow(color: accentColor.opacity(0.3), radius: 8)
+                // Active: cat animation, Idle: glow dot
+                if session.phase == .processing || session.phase == .compacting || session.phase.isWaitingForApproval {
+                    PixelCharacterView(state: session.phase.animationState)
+                        .scaleEffect(0.22)
+                        .frame(width: 12, height: 12)
+                } else {
+                    Circle()
+                        .fill(accentColor)
+                        .frame(width: 6, height: 6)
+                        .shadow(color: accentColor.opacity(0.6), radius: 4)
+                        .shadow(color: accentColor.opacity(0.3), radius: 8)
+                }
 
                 // Content
                 VStack(alignment: .leading, spacing: 1) {
