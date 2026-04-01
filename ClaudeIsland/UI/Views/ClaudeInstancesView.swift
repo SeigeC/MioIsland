@@ -450,9 +450,9 @@ struct InstanceRow: View {
                 } label: {
                     Image(systemName: "terminal")
                         .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.3))
+                        .foregroundColor(isHovered ? Color(red: 1.0, green: 0.84, blue: 0.25) : .white.opacity(0.3))
                         .frame(width: 22, height: 22)
-                        .background(Circle().fill(Color.white.opacity(0.06)))
+                        .background(Circle().fill(isHovered ? Color(red: 1.0, green: 0.84, blue: 0.25).opacity(0.12) : Color.white.opacity(0.06)))
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 2)
@@ -460,7 +460,7 @@ struct InstanceRow: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .contentShape(Rectangle())
-            .background(isHovered ? Color.white.opacity(0.04) : Color.clear)
+            .background(isHovered ? Color.white.opacity(0.1) : Color.clear)
             .cornerRadius(8)
         }
         .onHover { isHovered = $0 }
