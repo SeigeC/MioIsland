@@ -267,21 +267,23 @@ class BuddyReader: ObservableObject {
     // MARK: - Node Computation (most accurate — uses FNV-1a like Claude Code)
 
     private static func computeBonesViaNode(userId: String, salt: String) -> Bones? {
-        // Search for node in common locations including nvm
+        // Search for bun FIRST (Claude Code uses Bun.hash/wyhash), then node as fallback
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        var nodePaths = [
-            "/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node",
+        var runtimePaths = [
+            // Bun first — matches Claude Code's actual runtime
             home + "/bin/bun", home + "/.bun/bin/bun",
-            "/opt/homebrew/bin/bun", "/usr/local/bin/bun"
+            "/opt/homebrew/bin/bun", "/usr/local/bin/bun",
+            // Node fallback — uses FNV-1a (different hash, only for non-Bun installs)
+            "/opt/homebrew/bin/node", "/usr/local/bin/node", "/usr/bin/node",
         ]
-        // Add nvm node paths
+        // Add nvm node paths at the END (after bun)
         let nvmDir = home + "/.nvm/versions/node"
         if let versions = try? FileManager.default.contentsOfDirectory(atPath: nvmDir) {
             for v in versions.sorted().reversed() {
-                nodePaths.insert(nvmDir + "/" + v + "/bin/node", at: 0)
+                runtimePaths.append(nvmDir + "/" + v + "/bin/node")
             }
         }
-        guard let runtimePath = nodePaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return nil }
+        guard let runtimePath = runtimePaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return nil }
 
         let isBun = runtimePath.hasSuffix("/bun")
 
