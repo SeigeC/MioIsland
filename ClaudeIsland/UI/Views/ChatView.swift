@@ -422,13 +422,7 @@ struct ChatView: View {
     // MARK: - Actions
 
     private func focusTerminal() {
-        Task {
-            if let pid = session.pid {
-                _ = await YabaiController.shared.focusWindow(forClaudePid: pid)
-            } else {
-                _ = await YabaiController.shared.focusWindow(forWorkingDirectory: session.cwd)
-            }
-        }
+        Task { await TerminalJumper.shared.jump(to: session) }
     }
 
     private func approvePermission() {
@@ -439,53 +433,9 @@ struct ChatView: View {
         sessionMonitor.denyPermission(sessionId: sessionId, reason: nil)
     }
 
-    /// Activate the terminal window for this session, jumping to the exact tab in cmux
+    /// Activate the terminal window for this session
     private func activateTerminal() async {
-        let cwd = session.cwd
-
-        // Try cmux first: find terminal by working directory and focus it
-        let cmuxScript = """
-        tell application "cmux"
-            set allTerms to terminals
-            repeat with t in allTerms
-                if working directory of t contains "\(cwd)" then
-                    focus t
-                    return true
-                end if
-            end repeat
-        end tell
-        return false
-        """
-
-        do {
-            let result = try await ProcessExecutor.shared.run("/usr/bin/osascript", arguments: ["-e", cmuxScript])
-            if result.trimmingCharacters(in: .whitespacesAndNewlines) == "true" {
-                return
-            }
-        } catch {
-            // cmux not available, try fallback
-        }
-
-        // Fallback: try Ghostty
-        let ghosttyScript = """
-        tell application "Ghostty"
-            set matches to every terminal whose working directory contains "\(cwd)"
-            if (count of matches) > 0 then
-                focus (item 1 of matches)
-                return true
-            end if
-        end tell
-        return false
-        """
-
-        do {
-            _ = try await ProcessExecutor.shared.run("/usr/bin/osascript", arguments: ["-e", ghosttyScript])
-        } catch {
-            // Last fallback: just activate cmux
-            do {
-                _ = try await ProcessExecutor.shared.run("/usr/bin/osascript", arguments: ["-e", "tell application \"cmux\" to activate"])
-            } catch {}
-        }
+        await TerminalJumper.shared.jump(to: session)
     }
 }
 

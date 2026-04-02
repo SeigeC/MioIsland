@@ -1,0 +1,279 @@
+//
+//  TerminalJumper.swift
+//  ClaudeIsland
+//
+//  Unified terminal jumping service.
+//  Detects which terminal app hosts a Claude session and activates the correct window/tab.
+//
+
+import AppKit
+import Foundation
+
+actor TerminalJumper {
+    static let shared = TerminalJumper()
+
+    private init() {}
+
+    /// Jump to the terminal hosting the given session.
+    /// Tries strategies in order: tmux+Yabai → AppleScript → generic activate.
+    func jump(to session: SessionState) async -> Bool {
+        let cwd = session.cwd
+        let pid = session.pid
+        let terminalApp = session.terminalApp ?? ""
+
+        // 1. Tmux + Yabai (most precise for tmux sessions)
+        if session.isInTmux {
+            if let pid = pid {
+                if await YabaiController.shared.focusWindow(forClaudePid: pid) {
+                    return true
+                }
+            }
+            if await YabaiController.shared.focusWindow(forWorkingDirectory: cwd) {
+                return true
+            }
+        }
+
+        // 2. AppleScript strategies for specific terminals
+        let lower = terminalApp.lowercased()
+
+        if lower.contains("iterm") {
+            if await jumpViaiTerm2(cwd: cwd, pid: pid) { return true }
+        }
+
+        if lower.contains("terminal") && !lower.contains("wez") {
+            if await jumpViaTerminalApp(cwd: cwd, pid: pid) { return true }
+        }
+
+        if lower.contains("cmux") {
+            if await jumpViaCmux(cwd: cwd) { return true }
+        }
+
+        if lower.contains("ghostty") {
+            if await jumpViaGhostty(cwd: cwd) { return true }
+        }
+
+        if lower.contains("kitty") {
+            if await jumpViaKitty(cwd: cwd) { return true }
+        }
+
+        if lower.contains("wezterm") {
+            if await jumpViaWezTerm(cwd: cwd) { return true }
+        }
+
+        if lower.contains("warp") {
+            if await activateByBundleId("warp") { return true }
+        }
+
+        if lower.contains("alacritty") {
+            if await activateByBundleId("alacritty") { return true }
+        }
+
+        if lower.contains("hyper") {
+            if await activateByBundleId("hyper") { return true }
+        }
+
+        // 3. If terminal app unknown, try common AppleScript terminals in order
+        if terminalApp.isEmpty {
+            if await jumpViaCmux(cwd: cwd) { return true }
+            if await jumpViaGhostty(cwd: cwd) { return true }
+            if await jumpViaiTerm2(cwd: cwd, pid: pid) { return true }
+            if await jumpViaTerminalApp(cwd: cwd, pid: pid) { return true }
+        }
+
+        // 4. Generic fallback: activate terminal app by bundle ID
+        if await activateByBundleId(terminalApp) { return true }
+
+        // 5. Last resort: try cmux activate
+        return await activateApp("cmux")
+    }
+
+    // MARK: - iTerm2 (AppleScript — rich API)
+
+    private func jumpViaiTerm2(cwd: String, pid: Int?) async -> Bool {
+        let dirName = URL(fileURLWithPath: cwd).lastPathComponent
+        let script = """
+        tell application "System Events"
+            if not (exists process "iTerm2") then return false
+        end tell
+        tell application "iTerm2"
+            repeat with w in windows
+                repeat with t in tabs of w
+                    repeat with s in sessions of t
+                        try
+                            if name of s contains "\(dirName)" then
+                                select t
+                                select s
+                                activate
+                                return true
+                            end if
+                        end try
+                    end repeat
+                end repeat
+            end repeat
+            activate
+            return true
+        end tell
+        """
+        return await runAppleScript(script)
+    }
+
+    // MARK: - Terminal.app (AppleScript)
+
+    private func jumpViaTerminalApp(cwd: String, pid: Int?) async -> Bool {
+        let dirName = URL(fileURLWithPath: cwd).lastPathComponent
+        let script = """
+        tell application "System Events"
+            if not (exists process "Terminal") then return false
+        end tell
+        tell application "Terminal"
+            repeat with w in windows
+                repeat with t in tabs of w
+                    try
+                        if custom title of t contains "\(dirName)" or history of t contains "\(dirName)" then
+                            set selected tab of w to t
+                            set frontmost of w to true
+                            activate
+                            return true
+                        end if
+                    end try
+                end repeat
+            end repeat
+            activate
+            return true
+        end tell
+        """
+        return await runAppleScript(script)
+    }
+
+    // MARK: - cmux (AppleScript)
+
+    private func jumpViaCmux(cwd: String) async -> Bool {
+        let script = """
+        tell application "System Events"
+            if not (exists process "cmux") then return false
+        end tell
+        tell application "cmux"
+            set allTerms to terminals
+            repeat with t in allTerms
+                if working directory of t contains "\(cwd)" then
+                    focus t
+                    return true
+                end if
+            end repeat
+            activate
+            return true
+        end tell
+        """
+        return await runAppleScript(script)
+    }
+
+    // MARK: - Ghostty (AppleScript)
+
+    private func jumpViaGhostty(cwd: String) async -> Bool {
+        let script = """
+        tell application "System Events"
+            if not (exists process "Ghostty") then return false
+        end tell
+        tell application "Ghostty"
+            set matches to every terminal whose working directory contains "\(cwd)"
+            if (count of matches) > 0 then
+                focus (item 1 of matches)
+                return true
+            end if
+            activate
+            return true
+        end tell
+        """
+        return await runAppleScript(script)
+    }
+
+    // MARK: - Kitty (CLI remote control)
+
+    private func jumpViaKitty(cwd: String) async -> Bool {
+        let kittyPaths = ["/opt/homebrew/bin/kitty", "/usr/local/bin/kitty",
+                          "/Applications/kitty.app/Contents/MacOS/kitty"]
+        guard let kittyPath = kittyPaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
+            return await activateByBundleId("kitty")
+        }
+        do {
+            _ = try await ProcessExecutor.shared.run(kittyPath, arguments: [
+                "@", "focus-window", "--match", "cwd:\(cwd)"
+            ])
+            await activateApp("kitty")
+            return true
+        } catch {
+            return await activateByBundleId("kitty")
+        }
+    }
+
+    // MARK: - WezTerm (CLI)
+
+    private func jumpViaWezTerm(cwd: String) async -> Bool {
+        let wezPaths = ["/opt/homebrew/bin/wezterm", "/usr/local/bin/wezterm",
+                        "/Applications/WezTerm.app/Contents/MacOS/wezterm"]
+        guard let wezPath = wezPaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
+            return await activateByBundleId("wezterm")
+        }
+        do {
+            let output = try await ProcessExecutor.shared.run(wezPath, arguments: [
+                "cli", "list", "--format", "json"
+            ])
+            if output.contains(cwd) {
+                await activateApp("WezTerm")
+                return true
+            }
+        } catch {}
+        return await activateByBundleId("wezterm")
+    }
+
+    // MARK: - Generic Bundle ID Activation
+
+    @discardableResult
+    private func activateByBundleId(_ terminalApp: String) async -> Bool {
+        let lower = terminalApp.lowercased()
+
+        let bundleMap: [(match: String, bundleId: String)] = [
+            ("iterm", "com.googlecode.iterm2"),
+            ("terminal", "com.apple.Terminal"),
+            ("ghostty", "com.mitchellh.ghostty"),
+            ("alacritty", "io.alacritty"),
+            ("kitty", "net.kovidgoyal.kitty"),
+            ("warp", "dev.warp.Warp-Stable"),
+            ("wezterm", "com.github.wez.wezterm"),
+            ("hyper", "co.zeit.hyper"),
+            ("cmux", "com.cmuxterm.app"),
+        ]
+
+        for (match, bundleId) in bundleMap {
+            if lower.contains(match) {
+                return activateRunningApp(bundleId: bundleId)
+            }
+        }
+        return false
+    }
+
+    @discardableResult
+    private func activateRunningApp(bundleId: String) -> Bool {
+        if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
+            return app.activate()
+        }
+        return false
+    }
+
+    @discardableResult
+    private func activateApp(_ name: String) async -> Bool {
+        let script = "tell application \"\(name)\" to activate"
+        return await runAppleScript(script)
+    }
+
+    // MARK: - AppleScript Runner
+
+    private func runAppleScript(_ source: String) async -> Bool {
+        do {
+            let result = try await ProcessExecutor.shared.run("/usr/bin/osascript", arguments: ["-e", source])
+            return result.trimmingCharacters(in: .whitespacesAndNewlines) == "true"
+        } catch {
+            return false
+        }
+    }
+}

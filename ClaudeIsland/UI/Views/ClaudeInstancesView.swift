@@ -297,24 +297,7 @@ struct ClaudeInstancesView: View {
     // MARK: - Actions
 
     private func focusSession(_ session: SessionState) {
-        Task {
-            let cwd = session.cwd
-            let cmuxScript = """
-            tell application "cmux"
-                set allTerms to terminals
-                repeat with t in allTerms
-                    if working directory of t contains "\(cwd)" then
-                        focus t
-                        return
-                    end if
-                end repeat
-                activate
-            end tell
-            """
-            do {
-                _ = try await ProcessExecutor.shared.run("/usr/bin/osascript", arguments: ["-e", cmuxScript])
-            } catch {}
-        }
+        Task { await TerminalJumper.shared.jump(to: session) }
     }
 
     private func openChat(_ session: SessionState) {
