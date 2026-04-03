@@ -1,15 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/placeholder" width="0" height="0" />
-
-```
-      ▄▀▄         ▄▀▄
-     ▄█░░▀▄▄▄▄▄▄▄▀░░█▄
- ▄▄▄▄▀░░░░░░░░░░░░░░░▀▄▄▄▄
-█░░░░░░░░▄░░▄░░░░░░░░░░░░░█
- ▀▄░░░░░░░▀▀▀░░░░░░░░░░░▄▀
-   ▀▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀▀
-```
+<img src="ClaudeIsland/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" width="128" height="128" alt="CodeIsland" />
 
 # CodeIsland
 
