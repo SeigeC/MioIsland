@@ -214,7 +214,7 @@ Have questions or want to chat? Reach out!
 有问题或想交流？欢迎联系！
 
 - **WeChat / 微信**: `A115939`
-- **Phone / 手机**: `13884635775`
+- **Email / 邮箱**: xmqywx@gmail.com
 
 <img src="docs/wechat-qr.jpg" width="200" alt="WeChat QR Code" />
 
