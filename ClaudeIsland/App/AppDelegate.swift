@@ -15,6 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     override init() {
         super.init()
         AppDelegate.shared = self
+        UserDefaults.standard.register(defaults: ["usageWarningThreshold": 90])
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -24,12 +25,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         }
 
         HookInstaller.installIfNeeded()
-        NSApplication.shared.setActivationPolicy(.accessory)
 
-        // Request notification permission for usage alerts
+        // Request notification permission — .accessory policy blocks the system dialog,
+        // so temporarily switch to .regular when permission is not yet determined.
         let center = UNUserNotificationCenter.current()
         center.delegate = self
-        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+
+        center.getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                if settings.authorizationStatus == .notDetermined {
+                    NSApplication.shared.setActivationPolicy(.regular)
+                    center.requestAuthorization(options: [.alert, .sound]) { _, _ in
+                        DispatchQueue.main.async {
+                            NSApplication.shared.setActivationPolicy(.accessory)
+                        }
+                    }
+                } else {
+                    NSApplication.shared.setActivationPolicy(.accessory)
+                }
+            }
+        }
 
         windowManager = WindowManager()
         _ = windowManager?.setupNotchWindow()

@@ -103,7 +103,9 @@ class RateLimitMonitor: ObservableObject {
     /// Resets when usage drops below the threshold.
     private var hasNotifiedFiveHour = false
     private var hasNotifiedSevenDay = false
-    private let usageWarningThreshold = 90
+    private var usageWarningThreshold: Int {
+        UserDefaults.standard.integer(forKey: "usageWarningThreshold")
+    }
 
     private var refreshTimer: Timer?
 
@@ -130,6 +132,13 @@ class RateLimitMonitor: ObservableObject {
     /// Send a macOS notification + play sound when usage first crosses the threshold.
     /// Resets when usage drops back below the threshold so it can fire again next time.
     private func checkAndNotify(_ info: RateLimitDisplayInfo) async {
+        // Threshold disabled (Off)
+        guard usageWarningThreshold > 0 else {
+            hasNotifiedFiveHour = false
+            hasNotifiedSevenDay = false
+            return
+        }
+
         // 5-hour window
         if let pct = info.fiveHourPercent {
             if pct >= usageWarningThreshold && !hasNotifiedFiveHour {
