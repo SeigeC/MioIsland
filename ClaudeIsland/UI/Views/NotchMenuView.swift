@@ -139,6 +139,10 @@ struct NotchMenuView: View {
 
                     AccessibilityRow(isEnabled: AXIsProcessTrusted())
 
+                    // CodeLight pairing
+                    sectionHeader("CodeLight")
+                    PairPhoneView()
+
                     // Star & Feedback
                     HStack(spacing: 6) {
                         Button {
