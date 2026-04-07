@@ -78,14 +78,9 @@ struct TerminalVisibilityDetector {
         return true
     }
 
-    /// Check if a cmux session's surface is currently focused (across all windows)
+    /// Check if a cmux session's terminal is currently focused in the front window
     private static func isCmuxSessionActive(_ session: SessionState) -> Bool {
-        let dirName = URL(fileURLWithPath: session.cwd).lastPathComponent
-        return CmuxTreeParser.isSessionActive(
-            sessionId: session.sessionId,
-            dirName: dirName,
-            tty: session.tty
-        )
+        return CmuxTreeParser.isSessionActive(cwd: session.cwd)
     }
 
     // MARK: - iTerm2

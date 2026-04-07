@@ -831,49 +831,16 @@ struct InstanceRow: View {
             }
         }
 
-        // cmux — cross-window support via CmuxTreeParser
+        // cmux — native AppleScript: send text directly to the terminal
         guard CmuxTreeParser.isAvailable else {
             DebugLogger.log("AskUser", "No supported terminal, jumping")
             await TerminalJumper.shared.jump(to: session)
             return
         }
 
-        let dirName = URL(fileURLWithPath: session.cwd).lastPathComponent
-        let sid = String(session.sessionId.prefix(8))
-        DebugLogger.log("AskUser", "Finding workspace for '\(dirName)' sid=\(sid)")
-
-        // Strategy 1: TTY match across all windows (most reliable)
-        var targetLocation: CmuxLocation?
-        if let tty = session.tty, !tty.isEmpty {
-            targetLocation = CmuxTreeParser.findByTTY(tty, dirName: dirName)
-        }
-
-        // Strategy 2: Content match across all windows (session ID or dir name in title)
-        if targetLocation == nil {
-            targetLocation = CmuxTreeParser.findByContent(sessionId: session.sessionId, dirName: dirName)
-        }
-
-        // Strategy 3: Search workspace surfaces across all windows
-        if targetLocation == nil {
-            if let wsRef = CmuxTreeParser.findWorkspaceRef(sessionId: session.sessionId, dirName: dirName) {
-                // Found workspace, send directly
-                DebugLogger.log("AskUser", "Sending '\(index)' to \(wsRef) (workspace search)")
-                _ = CmuxTreeParser.cmuxRun(["send", "--workspace", wsRef, "--", "\(index)\r"])
-                DebugLogger.log("AskUser", "Sent!")
-                return
-            }
-        }
-
-        guard let location = targetLocation else {
-            DebugLogger.log("AskUser", "No matching workspace, jumping")
-            await TerminalJumper.shared.jump(to: session)
-            return
-        }
-
-        // Send the option number + Enter to the matched workspace
-        DebugLogger.log("AskUser", "Sending '\(index)' to \(location.workspaceRef) in \(location.windowRef)")
-        _ = CmuxTreeParser.cmuxRun(["send", "--workspace", location.workspaceRef, "--", "\(index)\r"])
-        DebugLogger.log("AskUser", "Sent!")
+        DebugLogger.log("AskUser", "Sending '\(index)' to cmux terminal cwd=\(session.cwd)")
+        let sent = CmuxTreeParser.sendText("\(index)\r", toCwd: session.cwd)
+        DebugLogger.log("AskUser", "Sent: \(sent)")
     }
 
     private func runAppleScript(_ script: String) -> Bool {

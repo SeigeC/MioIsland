@@ -215,56 +215,20 @@ actor TerminalJumper {
         return await runAppleScript(script)
     }
 
-    // MARK: - cmux (CLI — cross-window support via tree --all)
+    // MARK: - cmux (native AppleScript — `focus terminal`)
 
     private func jumpViaCmux(cwd: String, sessionId: String? = nil, tty: String? = nil) async -> Bool {
         guard CmuxTreeParser.isAvailable else { return false }
 
-        let dirName = URL(fileURLWithPath: cwd).lastPathComponent
+        DebugLogger.log("Jump", "cmux jump: cwd=\(cwd)")
 
-        // Strategy 1: TTY match (most reliable — OS-level, not renameable)
-        if let tty = tty, !tty.isEmpty {
-            if let location = CmuxTreeParser.findByTTY(tty, dirName: dirName) {
-                DebugLogger.log("Jump", "cmux TTY match: \(location.surfaceRef) in \(location.windowRef)")
-                if CmuxTreeParser.jump(to: location) {
-                    await bringCmuxToFront()
-                    return true
-                }
-            }
+        // One call: focus the terminal whose working directory matches
+        if CmuxTreeParser.jump(cwd: cwd) {
+            return true
         }
 
-        // Strategy 2: tree --all title match (session ID or dir name)
-        if let location = CmuxTreeParser.findByContent(sessionId: sessionId, dirName: dirName) {
-            DebugLogger.log("Jump", "cmux content match: \(location.surfaceRef) in \(location.windowRef)")
-            if CmuxTreeParser.jump(to: location) {
-                await bringCmuxToFront()
-                return true
-            }
-        }
-
-        // Strategy 3: find-window in current window (legacy fallback)
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: CmuxTreeParser.cmuxPath)
-        process.arguments = ["find-window", "--content", "--select", dirName]
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-
-        do {
-            try process.run()
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-
-            if process.terminationStatus == 0,
-               let output = String(data: data, encoding: .utf8),
-               output.contains("workspace:") {
-                DebugLogger.log("Jump", "cmux find-window matched: \(output.prefix(60))")
-                await bringCmuxToFront()
-                return true
-            }
-        } catch {}
-
-        DebugLogger.log("Jump", "cmux no match for '\(dirName)'")
+        // Fallback: just bring cmux to front
+        DebugLogger.log("Jump", "cmux focus failed, activating cmux app")
         await bringCmuxToFront()
         return true
     }
