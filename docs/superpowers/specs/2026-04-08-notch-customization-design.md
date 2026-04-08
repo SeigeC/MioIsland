@@ -67,7 +67,7 @@ Appearance Tab
   Font Size          [ S | M | L | XL ]       ← Segmented picker
   Show Buddy         [   ]                    ← Toggle
   Show Usage Bar     [   ]                    ← Toggle
-  Hardware Notch     [ Auto          ▾ ]      ← Auto | Force Virtual | Force Hardware
+  Hardware Notch     [ Auto          ▾ ]      ← Auto | Force Virtual (2 cases)
   [ Customize Size & Position… ]              ← Big button → enter live edit mode
 ```
 
@@ -75,17 +75,62 @@ Appearance Tab
 
 A one-shot interaction that takes over the notch itself to let the user
 resize, reposition, and preview the geometry. Entered from the
-Customize button in Settings. While in edit mode:
+Customize button in Settings.
 
-- The notch shows **simulated Claude content** (short / medium / long
-  messages rotating every 2s) so the user can see how real content
-  will render at the chosen max width.
+#### Window model
+
+Live edit mode adds a **new auxiliary `NSPanel` subclass**,
+`NotchLiveEditPanel`, separate from `NotchPanel`. Its purpose:
+
+- Hosts the floating edit controls (arrow buttons, Notch Preset, Drag
+  Mode, Save, Cancel).
+- Because controls are clickable, the panel must become key.
+  `styleMask = [.borderless, .nonactivatingPanel]`,
+  `isMovableByWindowBackground = false`, `canBecomeKey = true`,
+  `collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]`.
+- Frame: the panel is sized to the full screen width (so the arrow
+  buttons can live outside the notch's narrow bounds) and positioned
+  flush with the top of the active screen. Its height covers the
+  notch area plus the space for the controls beneath (~160pt total).
+- The panel renders a transparent background so only the controls are
+  visible; clicks on transparent areas pass through (`ignoresMouseEvents`
+  set per subview via `NSView.hitTest` override).
+- Created by `NotchWindowController.enterLiveEditMode()`, torn down by
+  `exitLiveEditMode()`. Lifetime is strictly scoped to `store.isEditing`.
+- `NotchPanel` itself stays non-key (`canBecomeKey = false`) and
+  unchanged — the notch content is still drawn by `NotchView`, but the
+  overlay window above it catches the clicks.
+
+While in edit mode:
+
+- The notch (inside `NotchPanel`) shows **simulated Claude content**
+  driven by `NotchLiveEditSimulator` (see timing below).
 - A **dashed border** and a **soft neon-green breathing gradient**
-  surround the notch.
-- The Settings window is minimized/hidden so the user can see the real
-  notch.
+  surround the notch (implemented inside `NotchView`, conditioned on
+  `store.isEditing`).
+- The `SystemSettingsWindow` is minimized/hidden so the user can see
+  the real notch. On Save or Cancel, the Settings window is re-shown.
 
-Floating controls appear near the notch:
+#### Simulated content rotation
+
+Driven by `TimelineView(.periodic(from: .now, by: 2))` scoped to
+`NotchLiveEditSimulator`. Lifecycle rules:
+
+1. Timeline runs only while `store.isEditing == true`. Leaving live
+   edit mode ends the timeline automatically via view lifetime.
+2. **Rotation pauses during an active resize or drag gesture.** While
+   the user is mid-gesture, the simulator freezes on the current
+   message so the notch width changes in response to user input, not
+   in response to auto-rotation. Implementation: the timeline's
+   `context.date` is gated through a `@State var isInteracting: Bool`.
+3. Rotation resumes 0.8s after the last gesture ends (de-bounce).
+4. Messages rotate through 5 fixtures: empty / short / medium / long /
+   long-with-wrap. See `NotchLiveEditSimulator.fixtures`.
+
+#### Control layout
+
+The auxiliary panel hosts the following controls, positioned relative
+to the notch frame:
 
 ```
                ┌─────────────────────────────┐
@@ -108,20 +153,44 @@ Interactions:
 - **Notch Preset button:** sets `maxWidth = hardwareNotchWidth + 20pt`
   (with small breathing room). Also flashes a dashed width marker
   underneath the notch for 2s so the user sees the hardware notch
-  reference width. On a Mac without a hardware notch, this button is
-  disabled with a help tooltip: *"Your device doesn't have a hardware
-  notch"*.
-- **Drag Mode button:** toggles the edit sub-mode from resize to move.
-  On toggle, the entire notch flashes once. While in drag mode,
-  dragging the notch moves it **horizontally only** along the top edge
-  of the screen — y is locked to the top. Click Drag Mode again to
-  return to resize sub-mode.
+  reference width. **Enabled iff effective `hasHardwareNotch == true`**
+  (i.e., whenever a real hardware notch is detected *and* the user has
+  not overridden with `.forceVirtual`). Otherwise disabled with help
+  tooltip: *"Your device doesn't have a hardware notch"*. This rule
+  holds regardless of how the mode was selected.
+- **Drag Mode button:** toggles the edit sub-mode between `.resize`
+  (default) and `.drag`. On each toggle, the entire notch flashes once:
+  opacity animates `1.0 → 0.4 → 1.0` over 0.3s total with
+  `.easeInOut`. While in `.drag`, dragging the notch moves it
+  **horizontally only** along the top edge of the screen — y is
+  locked to the top. Click Drag Mode again to return to `.resize`.
 - **Save (neon green):** commits all changes made during the edit
   session via `store.commitEdit()`, tears down the overlay, restores
-  the Settings window.
+  the Settings window. **Works in both `.resize` and `.drag`
+  sub-modes** — the sub-mode is transient and does not gate Save.
 - **Cancel (neon pink):** rolls back all changes to the snapshot taken
   at `enterEditMode()` via `store.cancelEdit()`, tears down the
-  overlay, restores the Settings window.
+  overlay, restores the Settings window. **Works in both sub-modes.**
+  `editSubMode` is transient state owned by `NotchLiveEditOverlay`; it
+  is not persisted and dies with the overlay — cancelling while in
+  `.drag` fully exits live edit and restores the pre-edit snapshot,
+  including rolling back any horizontal offset changes.
+
+#### Edit sub-mode state machine
+
+```
+         enterEditMode()              commitEdit() / cancelEdit()
+  (idle) ─────────────▶ .resize ─┐ ────────────────────────▶ (idle)
+                           ▲     │
+                           │     ▼
+                 [Drag Mode button] ⇆ .drag
+```
+
+- `editSubMode` is local state inside `NotchLiveEditOverlay` (SwiftUI
+  `@State`).
+- All transitions flash the notch (`.resize ↔ .drag`) or play the save
+  / cancel teardown animation.
+- Save and Cancel are valid from any sub-mode.
 
 ### 4.3 Runtime auto-width behavior
 
@@ -132,14 +201,42 @@ clampedWidth = max(minIdleWidth,
                    min(desiredContentWidth, store.customization.maxWidth))
 ```
 
-- `minIdleWidth = 200pt` — enough for the minimum idle layout (icon +
-  short label + small right-side indicator).
+- `minIdleWidth = 140pt` — a hard floor chosen to guarantee that the
+  notch never becomes narrower than "pet icon + 3-char status label
+  + 1-tiny-indicator" at the default font scale. This is smaller than
+  any realistic idle content, so the clamp effectively lets the notch
+  shrink tight around actual content (the user's reference screenshot
+  at 260pt still has plenty of headroom above 140pt).
 - `desiredContentWidth` — measured via `GeometryReader` +
-  `PreferenceKey` from the actual rendered notch content.
+  `PreferenceKey` from the actual rendered notch content. **Includes
+  the current font scale's effect on text sizing** — see the font
+  scale interaction rule below.
 - Width changes are animated with `.spring(response: 0.35,
   dampingFraction: 0.8)` so transitions are smooth.
 - When `desiredContentWidth > maxWidth`, the offending text uses
   `.lineLimit(1).truncationMode(.tail)` to render with an ellipsis.
+
+#### Font scale × auto-width interaction
+
+**`maxWidth` is sacrosanct** — it is the user's explicit cap and is
+never auto-bumped by a font scale change. The interaction rules:
+
+1. When the user switches font scale (Appearance picker), text re-lays
+   out at the new size. `GeometryReader` re-measures
+   `desiredContentWidth` on the next frame.
+2. The new desired width flows through the same clamp formula. If the
+   scaled content now fits within the user's `maxWidth`, the notch
+   grows to fit it (up to `maxWidth`).
+3. If the scaled content exceeds `maxWidth`, truncation with tail
+   ellipsis kicks in immediately. The notch width stays pinned at
+   `maxWidth`; the user sees more `…` in long messages.
+4. The clamp transition is animated with the same spring, so font
+   size changes look smooth even when they trigger width changes.
+
+To get more room at XL scale, the user must explicitly enter live edit
+mode and bump `maxWidth`. There is no "effective max width = maxWidth
+× fontScale" scaling — that would make the `maxWidth` setting
+confusing ("why is my 440pt notch now 572pt at XL?").
 
 Effect: idle state shrinks the notch tightly around its sparse content,
 solving the "huge empty middle" problem in the user's screenshot.
@@ -148,12 +245,36 @@ solving the "huge empty middle" problem in the user's screenshot.
 
 Switching the theme picker immediately mutates
 `store.customization.theme`. All views reading palette colors re-render.
-The notch root view carries
-`.animation(.easeInOut(duration: 0.3), value: store.customization.theme)`
-so all colors interpolate smoothly. Status colors (success / warning /
-error) come from Asset Catalog entries under `NotchStatus/` and are
-**not** palette-controlled — they preserve semantic meaning across
-themes.
+
+#### Animation scoping (critical)
+
+Naïvely applying `.animation(.easeInOut(duration: 0.3), value: theme)`
+at the `NotchView` root would stack on top of the width spring and
+could visually interfere with in-flight geometry animations. Instead,
+color interpolation is scoped **only to color-bearing modifiers**
+via a dedicated view modifier:
+
+```swift
+struct NotchPaletteModifier: ViewModifier {
+    @EnvironmentObject var store: NotchCustomizationStore
+    func body(content: Content) -> some View {
+        content
+            .foregroundColor(store.palette.fg)
+            .background(store.palette.bg)
+            .animation(.easeInOut(duration: 0.3), value: store.customization.theme)
+    }
+}
+```
+
+Because the `.animation(_:value:)` variant with a `value` parameter
+triggers only when `theme` changes, and only re-animates the modifiers
+it directly scopes, geometry animations (width spring) are not
+retriggered by theme switches. Theme and geometry transitions can
+happen simultaneously without interfering.
+
+Status colors (success / warning / error) come from Asset Catalog
+entries under `NotchStatus/` and are **not** palette-controlled —
+they preserve semantic meaning across themes.
 
 ## 5. Architecture
 
@@ -187,9 +308,8 @@ enum FontScale: CGFloat, Codable, CaseIterable {
 }
 
 enum HardwareNotchMode: String, Codable {
-    case auto        // detect via NSScreen.safeAreaInsets
-    case forceOn     // user has notch, wants virtual notch behavior
-    case forceOff    // user lacks notch, wants fake notch overlay
+    case auto          // detect via NSScreen.safeAreaInsets
+    case forceVirtual  // ignore any hardware notch, draw a virtual overlay
 }
 ```
 
@@ -207,7 +327,20 @@ final class NotchCustomizationStore: ObservableObject {
     private let defaultsKey = "notchCustomization.v1"
 
     private init() {
-        self.customization = Self.loadFromDefaults() ?? Self.migrateFromLegacyOrDefault()
+        if let loaded = Self.loadFromDefaults() {
+            self.customization = loaded
+        } else {
+            // No v1 key yet. Migrate from legacy, then write v1 BEFORE
+            // removing legacy keys so the migration is idempotent on
+            // crash: if writing v1 fails, legacy keys stay intact and
+            // next launch retries from scratch.
+            self.customization = Self.readLegacyOrDefault()
+            if self.saveAndVerify() {
+                Self.removeLegacyKeys()
+            } else {
+                Log.error("[NotchCustomizationStore] Initial v1 write failed; legacy keys retained for retry on next launch")
+            }
+        }
     }
 
     func update(_ mutation: (inout NotchCustomization) -> Void) {
@@ -235,9 +368,23 @@ final class NotchCustomizationStore: ObservableObject {
         isEditing = false
     }
 
-    private func save() {
-        guard let data = try? JSONEncoder().encode(customization) else { return }
-        UserDefaults.standard.set(data, forKey: defaultsKey)
+    @discardableResult
+    private func save() -> Bool {
+        do {
+            let data = try JSONEncoder().encode(customization)
+            UserDefaults.standard.set(data, forKey: defaultsKey)
+            return true
+        } catch {
+            Log.error("[NotchCustomizationStore] save failed: \(error)")
+            return false
+        }
+    }
+
+    /// Save and roundtrip-verify by reading back. Used by migration
+    /// so we only delete legacy keys after confirming persistence.
+    private func saveAndVerify() -> Bool {
+        guard save() else { return false }
+        return Self.loadFromDefaults() != nil
     }
 
     private static func loadFromDefaults() -> NotchCustomization? {
@@ -245,14 +392,22 @@ final class NotchCustomizationStore: ObservableObject {
         return try? JSONDecoder().decode(NotchCustomization.self, from: data)
     }
 
-    private static func migrateFromLegacyOrDefault() -> NotchCustomization {
+    /// Pull legacy @AppStorage values into a new NotchCustomization
+    /// WITHOUT deleting the source keys. Deletion is a separate step
+    /// that only runs after the v1 key is successfully written.
+    private static func readLegacyOrDefault() -> NotchCustomization {
         var c = NotchCustomization.default
         let d = UserDefaults.standard
         if d.object(forKey: "usePixelCat") != nil {
             c.showBuddy = d.bool(forKey: "usePixelCat")
-            d.removeObject(forKey: "usePixelCat")
         }
+        // ... any additional legacy keys added here follow the same pattern
         return c
+    }
+
+    private static func removeLegacyKeys() {
+        UserDefaults.standard.removeObject(forKey: "usePixelCat")
+        // ... any additional legacy keys added here follow the same pattern
     }
 }
 ```
@@ -337,21 +492,56 @@ are replaced with `.notchFont(N, ...)`. A single grep pass identifies
 every call site. Scale changes take effect immediately via the
 `@EnvironmentObject` dependency.
 
+**`@EnvironmentObject` in auxiliary windows.** Because
+`NotchLiveEditPanel` is a separate `NSWindow`, its content view's
+SwiftUI environment does not automatically inherit the
+`@EnvironmentObject` injected at the main scene root. The
+`NotchLiveEditPanel`'s hosting view must explicitly re-inject the
+store:
+
+```swift
+let hostingView = NSHostingView(
+    rootView: NotchLiveEditOverlay()
+        .environmentObject(NotchCustomizationStore.shared)
+)
+panel.contentView = hostingView
+```
+
+Same applies to any future auxiliary SwiftUI window.
+
 ### 5.5 Window geometry & hardware-notch detection
 
-`NotchWindowController` subscribes to `store.$customization` and
-re-applies geometry on every change. The computation flow:
+**Subscription ownership:** `NotchWindowController` is the sole owner
+of the `store.$customization` subscription. It stores a
+`Combine.AnyCancellable` as a private property:
+
+```swift
+private var customizationCancellable: AnyCancellable?
+
+func attachStore(_ store: NotchCustomizationStore) {
+    customizationCancellable = store.$customization
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in self?.applyGeometry() }
+}
+```
+
+The cancellable is released when `NotchWindowController` deinits —
+matching the window lifetime. `WindowManager` owns the
+`NotchWindowController` instance and is responsible for calling
+`attachStore(...)` once after creation, but `WindowManager` itself
+holds no subscription.
+
+**Computation flow (on every customization change):**
 
 ```
 hasHardwareNotch =
     switch hardwareNotchMode:
-        .auto      → NSScreen.main?.safeAreaInsets.top > 0
-        .forceOn   → true
-        .forceOff  → false
+        .auto           → NSScreen.main?.safeAreaInsets.top > 0
+        .forceVirtual   → false
 
 baseNotchSize = hasHardwareNotch
     ? screen hardware notch dimensions from safeAreaInsets
-    : synthetic default size
+    : synthetic default size (180pt × 37pt)
 
 runtimeWidth = clamp(measuredContentWidth,
                      minIdleWidth,
@@ -366,25 +556,47 @@ finalX = baseX + clampedOffset
 notchY = screen top (always pinned)
 ```
 
-The existing `ScreenObserver` already subscribes to
-`NSApplication.didChangeScreenParametersNotification`. We extend its
-handler to call `notchWindowController.applyGeometry()` so external
-monitor plug/unplug re-runs detection.
+**`horizontalOffset` clamp semantics:** the clamp is applied at
+render time only — the stored value is never written back. Rationale:
+if a user sets offset +300 on a wide external display and later
+switches to a 1280pt built-in display where the legal max is +200,
+the stored value is silently clamped to +200 for the duration they
+use the smaller screen, but restored to +300 when they plug the
+external display back in. This is the intentional behavior. The clamp
+is stateless; the store is not mutated by render-time math.
+
+**External monitor plug / unplug:** The existing `ScreenObserver`
+already subscribes to
+`NSApplication.didChangeScreenParametersNotification`. Its handler
+now:
+
+1. Calls `notchWindowController.applyGeometry()` to re-detect the
+   active screen's notch + re-layout.
+2. **If `store.isEditing == true` at the moment of the screen change,
+   auto-cancels live edit mode** via `store.cancelEdit()`. This
+   tears down the `NotchLiveEditPanel` overlay and reverts any draft
+   changes. Rationale: attempting to migrate the overlay to a new
+   screen mid-edit is complex and error-prone, and auto-committing
+   unconfirmed changes would violate user intent. Auto-cancel is
+   the safe default — the user can re-enter live edit mode on the
+   new active screen.
 
 ### 5.6 New files
 
 ```
 ClaudeIsland/
   Models/
-    NotchCustomization.swift        ← value type, enums
-    NotchTheme.swift                 ← palette definitions, NotchThemeID
+    NotchCustomization.swift         ← value type, enums
+    NotchTheme.swift                  ← palette definitions, NotchThemeID
   Services/State/
-    NotchCustomizationStore.swift    ← ObservableObject store
+    NotchCustomizationStore.swift     ← ObservableObject store
   UI/Helpers/
-    NotchFontModifier.swift          ← font scaling helper
+    NotchFontModifier.swift           ← font scaling helper
+    NotchPaletteModifier.swift        ← palette + scoped theme animation
   UI/Views/
-    NotchLiveEditOverlay.swift       ← floating edit controls
-    NotchLiveEditSimulator.swift     ← rotating simulated content
+    NotchLiveEditPanel.swift          ← auxiliary NSPanel subclass
+    NotchLiveEditOverlay.swift        ← SwiftUI controls inside the panel
+    NotchLiveEditSimulator.swift      ← rotating simulated content
 ```
 
 ### 5.7 Files modified
@@ -484,13 +696,26 @@ ClaudeIslandTests/
 
 ### 7.2 Snapshot tests
 
-Use the existing testing infrastructure (check for existing snapshot
-setup during implementation). Render the notch view with:
+**Pre-flight check for the plan:** before writing implementation
+tasks, grep the project for an existing snapshot testing dependency
+(`swift-snapshot-testing`, `SnapshotTesting`, custom `SnapshotBuddy`).
+If none exists, snapshot coverage is descoped to a best-effort
+manual QA pass — don't add a test-only dependency as part of this
+feature.
 
-- 6 themes × 4 font scales = 24 idle-state snapshots.
-- Live edit overlay in each sub-mode: resize, drag-mode, with
-  preset marker visible.
-- Empty content (minIdleWidth). Short content. Long-truncated content.
+If a snapshot library is already present, render these baselines:
+
+- **6 themes at default scale** (6 images) — verifies every palette
+  renders without crash and text is readable.
+- **Classic theme × 4 font scales** (4 images) — verifies scaling
+  doesn't break layout.
+- **3 edit-mode states** — resize sub-mode, drag sub-mode, Notch
+  Preset marker visible.
+
+**Total: 13 snapshots** (down from a naïve 6×4 = 24 matrix that would
+have been expensive to maintain for a palette of 3 colors). The
+cross-product is covered by unit tests on palette lookup and scale
+application, not by image diffs.
 
 ### 7.3 Manual QA checklist
 
@@ -539,14 +764,19 @@ On first launch after upgrade:
 
 - Single PR against `main` targeting **v1.10.0**.
 - Bumped `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`.
-- Because Apple notarization is still blocked on case
-  `102860621331` (error 7000), v1.10.0 ships as a pre-release
-  "signed but not notarized" via GitHub Releases, mirroring the
-  v1.9.0-rc1 pattern. Homebrew cask in `xmqywx/homebrew-codeisland`
-  is updated with the new version + sha256 + the postflight
-  `xattr -dr com.apple.quarantine` hook still in place.
-- README install notice and Homebrew README are unchanged — they
-  already cover the unnotarized state generically.
+- **Before cutting the release**, re-check Apple Developer Programs
+  Support case `102860621331`. Two branches:
+  - **Case still open (error 7000 unresolved):** v1.10.0 ships as a
+    pre-release `v1.10.0-rc1` "signed but not notarized" via
+    GitHub Releases, mirroring the v1.9.0-rc1 pattern. Homebrew cask
+    in `xmqywx/homebrew-codeisland` is updated with the new version
+    + sha256 + the existing postflight `xattr -dr
+    com.apple.quarantine` hook stays in place.
+  - **Case resolved:** v1.10.0 ships as a regular Release. Homebrew
+    cask is updated to the new version + sha256, AND the postflight
+    `xattr` hook is removed at the same time.
+- README install notice and Homebrew README already cover the
+  unnotarized state generically and need no changes.
 
 ## 9. Open questions
 
@@ -576,3 +806,60 @@ been answered and incorporated.
 | Arch | State management | Centralized `NotchCustomizationStore` (Y), not scattered AppStorage (X), not Redux (Z) |
 | Arch | Persistence | Single versioned UserDefaults key (`notchCustomization.v1`) |
 | Arch | Refactoring scope | Only notch-related AppStorage; leave notification/codelight/behavior untouched |
+
+## 11. Spec review revisions (round 1)
+
+Issues surfaced by the spec-document-reviewer subagent and resolved
+before the spec was approved:
+
+1. **Live edit overlay window model** was unspecified. Now
+   Section 4.2 defines `NotchLiveEditPanel`, a new auxiliary
+   `NSPanel` subclass with `canBecomeKey = true`, distinct from
+   `NotchPanel`, positioned over the notch but sized to the full
+   screen width so floating controls can live outside the notch
+   bounds.
+2. **`HardwareNotchMode` 3-case contradictions.** Simplified from
+   `.auto / .forceOn / .forceOff` to `.auto / .forceVirtual`. The
+   dropped `.forceOn` case had no user scenario and was creating
+   inconsistent semantics. Notch Preset is now unambiguously
+   enabled iff effective `hasHardwareNotch == true`.
+3. **Simulated content rotation** now specifies `TimelineView`
+   driver, view-lifetime scope, pause during active gesture with
+   0.8s debounce, and a fixed 5-fixture rotation.
+4. **Font scale × auto-width interaction** now explicitly states
+   `maxWidth` is sacrosanct — font scale changes can trigger
+   truncation but never auto-bump the user's saved max.
+5. **Cancel during drag sub-mode** now explicitly defined: Save
+   and Cancel work from any sub-mode; `editSubMode` is transient
+   and dies with the overlay. A state diagram is included.
+6. **Theme switching animation** now scoped to a dedicated
+   `NotchPaletteModifier` using `.animation(_:value:)` so color
+   transitions do not stack on geometry springs.
+7. **`save()` migration idempotency** fixed: `init` writes v1
+   before deleting legacy keys, uses a `saveAndVerify()` read-back
+   check, and logs on failure. If v1 write fails, legacy keys
+   stay untouched and next launch retries.
+8. **External monitor disconnect during live edit** now defined:
+   `ScreenObserver` auto-cancels live edit mode on screen change,
+   tearing down `NotchLiveEditPanel` and reverting the draft.
+9. **`horizontalOffset` render-time clamp** now documented as
+   intentional: stored value preserved, clamp applied per-render,
+   no write-back.
+10. **`minIdleWidth`** lowered from 200pt to 140pt to match the
+    "tight around content" requirement in QA and justified inline.
+11. **`WindowManager` vs `NotchWindowController` subscription
+    ownership** now assigned: `NotchWindowController` owns the
+    `store.$customization` sink via a private `AnyCancellable`;
+    `WindowManager` calls `attachStore(...)` once after creation.
+12. **Edit sub-mode state machine** diagram added. Flash animation
+    for sub-mode toggle specified concretely (opacity
+    `1.0 → 0.4 → 1.0` over 0.3s `.easeInOut`).
+13. **`@EnvironmentObject` injection for auxiliary `NSWindow`s**
+    documented: the store must be re-injected into the
+    `NotchLiveEditPanel`'s hosting view since `@EnvironmentObject`
+    does not cross `NSWindow` boundaries.
+14. **Snapshot test matrix** reduced from 24 to 13 images and
+    made conditional on existing snapshot library detection.
+15. **Release section** now has a pre-flight check on Apple case
+    `102860621331` with distinct paths for "case still open" vs
+    "case resolved".
