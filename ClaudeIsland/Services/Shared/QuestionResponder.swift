@@ -19,7 +19,7 @@ actor QuestionResponder {
         guard let tty = session.tty else { return }
 
         let keys = "\(optionIndex)"
-        let tmuxPath = TmuxPathFinder.findTmuxPath() ?? "/opt/homebrew/bin/tmux"
+        let tmuxPath = await TmuxPathFinder.shared.getTmuxPath() ?? "/opt/homebrew/bin/tmux"
 
         do {
             // Find the tmux pane for this tty

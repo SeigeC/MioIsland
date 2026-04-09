@@ -22,6 +22,7 @@ struct NotchView: View {
     @StateObject private var activityCoordinator = NotchActivityCoordinator.shared
     @State private var previousPendingIds: Set<String> = []
     @State private var previousWaitingForInputIds: Set<String> = []
+    @State private var previousWaitingForQuestionIds: Set<String> = []
     @State private var waitingForInputTimestamps: [String: Date] = [:]  // sessionId -> when it entered waitingForInput
     @State private var isVisible: Bool = false
     @State private var isHovering: Bool = false
@@ -60,6 +61,11 @@ struct NotchView: View {
             }
             return false
         }
+    }
+
+    /// Whether any Claude session is waiting for a question answer
+    private var hasWaitingForQuestion: Bool {
+        sessionMonitor.instances.contains { $0.phase.isWaitingForQuestion }
     }
 
     /// Whether there are any active (non-ended) sessions
@@ -268,9 +274,10 @@ struct NotchView: View {
                             autoCollapseTimer?.cancel()
                             autoCollapseTimer = nil
                         } else if autoCollapseOnMouseLeave && viewModel.status == .opened {
-                            // Mouse left: start 1.5s countdown unless waiting for approval
+                            // Mouse left: start 1.5s countdown unless waiting for approval or question
                             let hasApprovalPending = sessionMonitor.instances.contains { $0.phase.isWaitingForApproval }
-                            if !hasApprovalPending {
+                            let hasQuestionPending = sessionMonitor.instances.contains { $0.phase.isWaitingForQuestion }
+                            if !hasApprovalPending && !hasQuestionPending {
                                 let workItem = DispatchWorkItem { [self] in
                                     if !isHovering && viewModel.status == .opened {
                                         viewModel.notchClose()
@@ -310,6 +317,7 @@ struct NotchView: View {
         .onChange(of: sessionMonitor.instances) { _, instances in
             handleProcessingChange()
             handleWaitingForInputChange(instances)
+            handleWaitingForQuestionChange(instances)
         }
         .onChange(of: expansionWidth) { _, newWidth in
             viewModel.currentExpansionWidth = newWidth
@@ -330,7 +338,7 @@ struct NotchView: View {
 
     /// Whether to show the expanded closed state (any active sessions)
     private var showClosedActivity: Bool {
-        isProcessing || hasPendingPermission || hasWaitingForInput || hasActiveSessions
+        isProcessing || hasPendingPermission || hasWaitingForQuestion || hasWaitingForInput || hasActiveSessions
     }
 
     @ViewBuilder
@@ -435,6 +443,23 @@ struct NotchView: View {
                     sessionMonitor: sessionMonitor,
                     viewModel: viewModel
                 )
+            case .question(let session):
+                if let ctx = session.phase.questionContext {
+                    AskUserQuestionView(
+                        session: session,
+                        context: ctx,
+                        sessionMonitor: sessionMonitor
+                    )
+                } else {
+                    // Session is no longer waiting for a question — fall back to instances
+                    ClaudeInstancesView(
+                        sessionMonitor: sessionMonitor,
+                        viewModel: viewModel
+                    )
+                    .onAppear {
+                        viewModel.contentType = .instances
+                    }
+                }
             }
         }
         .frame(width: notchSize.width - 24) // Fixed width to prevent text reflow
@@ -446,7 +471,7 @@ struct NotchView: View {
     private func handleProcessingChange() {
         if hasActiveSessions {
             // Show notch whenever there are active sessions
-            if isAnyProcessing || hasPendingPermission {
+            if isAnyProcessing || hasPendingPermission || hasWaitingForQuestion {
                 activityCoordinator.showActivity(type: .claude)
             } else {
                 activityCoordinator.hideActivity()
@@ -603,6 +628,43 @@ struct NotchView: View {
         }
 
         previousWaitingForInputIds = currentIds
+    }
+
+    private func handleWaitingForQuestionChange(_ instances: [SessionState]) {
+        let questionSessions = instances.filter { $0.phase.isWaitingForQuestion }
+        let currentIds = Set(questionSessions.map { $0.stableId })
+        let newQuestionIds = currentIds.subtracting(previousWaitingForQuestionIds)
+
+        if !newQuestionIds.isEmpty {
+            // A session just entered waitingForQuestion — auto-open and show the question UI
+            if let session = questionSessions.first(where: { newQuestionIds.contains($0.stableId) }) {
+                // Smart suppression: don't expand if user's terminal is frontmost
+                let termFront = TerminalVisibilityDetector.isTerminalFrontmost()
+                DebugLogger.log("AskUser", "[question] newIds=\(newQuestionIds.count) termFront=\(termFront)")
+                if smartSuppression && termFront {
+                    DebugLogger.log("AskUser", "[question] Suppressed — terminal frontmost")
+                } else {
+                    DebugLogger.log("AskUser", "[question] Opening notification with question UI")
+                    viewModel.notchOpen(reason: .notification)
+                    viewModel.showQuestion(for: session)
+                }
+            }
+
+            // Bounce the notch to attract attention
+            DispatchQueue.main.async {
+                isBouncing = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isBouncing = false
+                }
+            }
+        }
+
+        // If no sessions are waiting for question and we're currently showing question content, go back to instances
+        if currentIds.isEmpty, case .question = viewModel.contentType {
+            viewModel.contentType = .instances
+        }
+
+        previousWaitingForQuestionIds = currentIds
     }
 
     /// Determine if notification sound should play for the given sessions
