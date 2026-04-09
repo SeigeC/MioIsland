@@ -75,13 +75,11 @@ actor SessionStore {
         case .permissionSocketFailed(let sessionId, let toolUseId):
             await processSocketFailure(sessionId: sessionId, toolUseId: toolUseId)
 
-        case .questionAnswered(let sessionId, _, _):
-            // TODO: Task 6 will implement full question answer processing
-            Self.logger.debug("Question answered for session \(sessionId.prefix(8), privacy: .public)")
+        case .questionAnswered(let sessionId, let toolUseId, _):
+            processQuestionAnswered(sessionId: sessionId, toolUseId: toolUseId)
 
-        case .questionSkipped(let sessionId, _):
-            // TODO: Task 6 will implement full question skip processing
-            Self.logger.debug("Question skipped for session \(sessionId.prefix(8), privacy: .public)")
+        case .questionSkipped(let sessionId, let toolUseId):
+            processQuestionSkipped(sessionId: sessionId, toolUseId: toolUseId)
 
         case .fileUpdated(let payload):
             await processFileUpdate(payload)
@@ -191,6 +189,13 @@ actor SessionStore {
         if event.event == "PermissionRequest", let toolUseId = event.toolUseId {
             Self.logger.debug("Setting tool \(toolUseId.prefix(12), privacy: .public) status to waitingForApproval")
             updateToolStatus(in: &session, toolId: toolUseId, status: .waitingForApproval)
+        }
+
+        // Clean up pending question when PostToolUse arrives for AskUserQuestion
+        if event.event == "PostToolUse" && event.tool == "AskUserQuestion" {
+            if session.phase.isWaitingForQuestion {
+                session.phase = .processing
+            }
         }
 
         processToolTracking(event: event, session: &session)
@@ -408,6 +413,24 @@ actor SessionStore {
         }
 
         sessions[sessionId] = session
+    }
+
+    private func processQuestionAnswered(sessionId: String, toolUseId: String) {
+        guard var session = sessions[sessionId] else { return }
+        if session.phase.isWaitingForQuestion {
+            session.phase = .processing
+        }
+        sessions[sessionId] = session
+        publishState()
+    }
+
+    private func processQuestionSkipped(sessionId: String, toolUseId: String) {
+        guard var session = sessions[sessionId] else { return }
+        if session.phase.isWaitingForQuestion {
+            session.phase = .processing
+        }
+        sessions[sessionId] = session
+        publishState()
     }
 
     // MARK: - Tool Completion Processing
