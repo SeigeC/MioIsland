@@ -191,10 +191,14 @@ struct AskUserQuestionView: View {
 
     // MARK: - Terminal Sending
 
-    /// Send the option number directly to the terminal where Claude Code's
-    /// AskUserQuestion UI is waiting for input.
+    /// Navigate to the option using arrow keys and press Enter.
+    /// Claude Code's AskUserQuestion uses an arrow-key navigation UI
+    /// (↑/↓ to navigate, Enter to select), not numbered input.
+    /// Default cursor position is on option 1 (index=1).
     private func approveAndSendOption(index: Int) async {
-        await sendToTerminal("\(index)")
+        // Move down (index-1) times from the default position (option 1)
+        let downPresses = index - 1
+        await sendArrowKeysAndEnter(downCount: downPresses)
     }
 
     private func submitCustomText() {
@@ -204,46 +208,61 @@ struct AskUserQuestionView: View {
         let optionCount = context.questions.first?.options.count ?? 0
         DebugLogger.log("AskUser", "Custom text: \(text)")
         Task {
-            // Send "Other" option (last + 1), then the text
-            await sendToTerminal("\(optionCount + 1)")
+            // "Type something" is option (optionCount + 1), navigate there
+            await sendArrowKeysAndEnter(downCount: optionCount)
+            // Wait for the text input prompt to appear
             try? await Task.sleep(nanoseconds: 500_000_000)
-            await sendToTerminal(text)
+            // Type the custom text + Enter
+            await writeToPty(text + "\n")
         }
     }
 
-    /// Send text to the terminal by writing directly to the pty device.
-    /// This bypasses all UI frameworks and writes to the pseudo-terminal
-    /// input buffer — the same mechanism as `tmux send-keys`.
-    /// Works with Claude Code's raw terminal mode (ink/React CLI).
-    private func sendToTerminal(_ text: String) async {
+    /// Send arrow-down keys followed by Enter to the pty.
+    /// Arrow Down = ESC [ B (\x1b[B), Enter = \r
+    private func sendArrowKeysAndEnter(downCount: Int) async {
+        var payload = Data()
+        // Arrow Down escape sequence: ESC [ B
+        let arrowDown: [UInt8] = [0x1b, 0x5b, 0x42]
+        for _ in 0..<downCount {
+            payload.append(contentsOf: arrowDown)
+        }
+        // Enter key: carriage return
+        payload.append(0x0d)
+
+        await writeToPtyRaw(payload, label: "\(downCount) arrows + Enter")
+    }
+
+    /// Write raw bytes to the pty device.
+    private func writeToPtyRaw(_ data: Data, label: String) async {
         guard let tty = session.tty, !tty.isEmpty else {
-            DebugLogger.log("AskUser", "No tty for session, jumping to terminal")
+            DebugLogger.log("AskUser", "No tty, jumping to terminal")
             await TerminalJumper.shared.jump(to: session)
             return
         }
 
         let ttyPath = tty.hasPrefix("/dev/") ? tty : "/dev/\(tty)"
-        let payload = "\(text)\n"
-
         let fd = open(ttyPath, O_WRONLY | O_NONBLOCK)
         guard fd >= 0 else {
-            DebugLogger.log("AskUser", "Failed to open \(ttyPath), errno=\(errno), jumping")
+            DebugLogger.log("AskUser", "Failed to open \(ttyPath), errno=\(errno)")
             await TerminalJumper.shared.jump(to: session)
             return
         }
 
-        let bytes = Array(payload.utf8)
-        let written = bytes.withUnsafeBufferPointer { buf in
+        let written = data.withUnsafeBytes { buf in
             Darwin.write(fd, buf.baseAddress!, buf.count)
         }
         close(fd)
 
         if written > 0 {
-            DebugLogger.log("AskUser", "Wrote '\(text)' to \(ttyPath) (\(written) bytes)")
+            DebugLogger.log("AskUser", "Sent \(label) to \(ttyPath) (\(written) bytes)")
         } else {
-            DebugLogger.log("AskUser", "Write to \(ttyPath) failed, errno=\(errno)")
-            await TerminalJumper.shared.jump(to: session)
+            DebugLogger.log("AskUser", "Write failed to \(ttyPath), errno=\(errno)")
         }
+    }
+
+    /// Write a string to the pty device.
+    private func writeToPty(_ text: String) async {
+        await writeToPtyRaw(Data(text.utf8), label: text.prefix(20).description)
     }
 
     private func runAppleScript(_ script: String) -> Bool {
