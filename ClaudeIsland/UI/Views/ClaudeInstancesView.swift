@@ -31,8 +31,8 @@ struct ClaudeInstancesView: View {
                     // Top bar: session count + settings
                     HStack {
                         Text("\(sessionMonitor.instances.count) \(L10n.sessions)")
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.25))
+                            .notchFont(11)
+                            .notchSecondaryForeground()
                         Spacer()
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -40,8 +40,8 @@ struct ClaudeInstancesView: View {
                             }
                         } label: {
                             Image(systemName: "gearshape")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.35))
+                                .notchFont(10)
+                                .notchSecondaryForeground()
                                 .frame(width: 24, height: 24)
                                 .contentShape(Rectangle())
                         }
@@ -108,18 +108,18 @@ struct ClaudeInstancesView: View {
             // Header
             HStack {
                 Text(buddy.rarity.stars)
-                    .font(.system(size: 11))
+                    .notchFont(11)
                     .foregroundColor(buddy.rarity.color)
                 Text(buddy.rarity.displayName.uppercased())
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .notchFont(11, weight: .bold, design: .monospaced)
                     .foregroundColor(buddy.rarity.color)
                 Spacer()
                 Text(buddy.species.rawValue.uppercased())
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.3))
+                    .notchFont(11, weight: .medium, design: .monospaced)
+                    .notchSecondaryForeground()
                 if buddy.isShiny {
                     Text("✨")
-                        .font(.system(size: 11))
+                        .notchFont(11)
                 }
             }
             .padding(.horizontal, 10)
@@ -141,8 +141,8 @@ struct ClaudeInstancesView: View {
                     }
 
                     Text(buddy.personality)
-                        .font(.system(size: 8))
-                        .foregroundColor(.white.opacity(0.3))
+                        .notchFont(8)
+                        .notchSecondaryForeground()
                         .lineLimit(3)
                         .padding(.top, 3)
                 }
@@ -156,8 +156,8 @@ struct ClaudeInstancesView: View {
                 }
             } label: {
                 Text(L10n.back)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.4))
+                    .notchFont(11, weight: .medium)
+                    .notchSecondaryForeground()
                     .padding(.horizontal, 14)
                     .padding(.vertical, 3)
                     .background(Capsule().fill(Color.white.opacity(0.06)))
@@ -175,14 +175,14 @@ struct ClaudeInstancesView: View {
 
         return HStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundColor(.white.opacity(0.35))
+                .notchFont(11, weight: .medium, design: .monospaced)
+                .notchSecondaryForeground()
                 .frame(width: 30, alignment: .trailing)
             Text("[\(bar)]")
-                .font(.system(size: 11, design: .monospaced))
+                .notchFont(11, weight: .regular, design: .monospaced)
                 .foregroundColor(color.opacity(0.7))
             Text("\(value)")
-                .font(.system(size: 11, design: .monospaced))
+                .notchFont(11, weight: .regular, design: .monospaced)
                 .foregroundColor(color.opacity(0.5))
                 .frame(width: 24, alignment: .trailing)
         }
@@ -204,8 +204,8 @@ struct ClaudeInstancesView: View {
                     }
                 } label: {
                     Image(systemName: "gearshape")
-                        .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.35))
+                        .notchFont(10)
+                        .notchSecondaryForeground()
                         .frame(width: 24, height: 24)
                         .contentShape(Rectangle())
                 }
@@ -236,11 +236,11 @@ struct ClaudeInstancesView: View {
                 }
 
                 Text(L10n.noSessions)
-                    .font(.system(size: 13, weight: .medium))
+                    .notchFont(13, weight: .medium)
                     .foregroundColor(.white.opacity(emptyPulse ? 0.5 : 0.3))
 
                 Text(L10n.runClaude)
-                    .font(.system(size: 10))
+                    .notchFont(10)
                     .foregroundColor(.white.opacity(0.2))
                     .padding(.horizontal, 20)
                     .multilineTextAlignment(.center)
@@ -361,11 +361,11 @@ struct ClaudeInstancesView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.down")
-                                .font(.system(size: 8))
+                                .notchFont(8)
                             Text(L10n.showAllSessions(sortedInstances.count))
-                                .font(.system(size: 10))
+                                .notchFont(10)
                         }
-                        .foregroundColor(.white.opacity(0.3))
+                        .notchSecondaryForeground()
                         .padding(.vertical, 6)
                         .frame(maxWidth: .infinity)
                         .background(
@@ -385,18 +385,18 @@ struct ClaudeInstancesView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.up")
-                                .font(.system(size: 8))
+                                .notchFont(8)
                             Text("收起")
-                                .font(.system(size: 10))
+                                .notchFont(10)
                         }
-                        .foregroundColor(.white.opacity(0.3))
+                        .notchSecondaryForeground()
                         .padding(.vertical, 4)
                     }
                     .buttonStyle(.plain)
                     .padding(.bottom, 4)
                 } else if sortedInstances.count > 0 {
                     Text(L10n.showAllSessions(sortedInstances.count))
-                        .font(.system(size: 10))
+                        .notchFont(10)
                         .foregroundColor(.white.opacity(0.2))
                         .padding(.top, 8)
                         .padding(.bottom, 4)
@@ -634,7 +634,7 @@ struct InstanceRow: View {
                     // Title row
                     HStack(spacing: 4) {
                         Text(titleText)
-                            .font(.system(size: titleFontSize, weight: isActive ? .semibold : .medium))
+                            .notchFont(titleFontSize, weight: isActive ? .semibold : .medium)
                             .foregroundColor(.white.opacity(isActive ? 0.95 : 0.85))
                             .lineLimit(isActive ? 2 : 1)
 
@@ -643,7 +643,7 @@ struct InstanceRow: View {
                         // Subagent badge (if active)
                         if session.subagentState.hasActiveSubagent {
                             Text("⚡\(session.subagentState.activeTasks.count)")
-                                .font(.system(size: 8, weight: .medium))
+                                .notchFont(8, weight: .medium)
                                 .foregroundColor(Color(red: 0.6, green: 0.8, blue: 1.0))
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
@@ -654,7 +654,7 @@ struct InstanceRow: View {
 
                         // Terminal tag — colored by terminal type
                         Text(terminalTag)
-                            .font(.system(size: 8, weight: .semibold))
+                            .notchFont(8, weight: .semibold)
                             .foregroundColor(terminalTagColor)
                             .padding(.horizontal, 5)
                             .padding(.vertical, 2)
@@ -665,8 +665,8 @@ struct InstanceRow: View {
                         // Ended tag
                         if isEnded {
                             Text(L10n.ended)
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.4))
+                                .notchFont(8, weight: .semibold)
+                                .notchSecondaryForeground()
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
                                 .background(Capsule().fill(Color.white.opacity(0.08)))
@@ -674,13 +674,13 @@ struct InstanceRow: View {
 
                         // Duration — colored when active
                         Text(durationText)
-                            .font(.system(size: 10, weight: isActive ? .medium : .regular))
+                            .notchFont(10, weight: isActive ? .medium : .regular)
                             .foregroundColor(isActive ? accentColor.opacity(0.7) : .white.opacity(0.3))
 
                         // Terminal jump button — hidden for ended sessions
                         if !isEnded {
                             Image(systemName: "terminal")
-                                .font(.system(size: 10))
+                                .notchFont(10)
                                 .foregroundColor(Color(red: 0.29, green: 0.87, blue: 0.5).opacity(0.7))
                                 .frame(width: 20, height: 20)
                                 .background(
@@ -693,8 +693,8 @@ struct InstanceRow: View {
 
                         // Delete button (always visible so users can dismiss stuck sessions)
                         Image(systemName: "xmark")
-                            .font(.system(size: 8, weight: .medium))
-                            .foregroundColor(.white.opacity(0.25))
+                            .notchFont(8, weight: .medium)
+                            .notchSecondaryForeground()
                             .frame(width: 16, height: 16)
                             .contentShape(Rectangle())
                             .onTapGesture { onArchive() }
@@ -708,11 +708,11 @@ struct InstanceRow: View {
                        let lastMsg = session.lastMessage {
                         HStack(spacing: 3) {
                             Image(systemName: "wrench.and.screwdriver")
-                                .font(.system(size: 8))
+                                .notchFont(8)
                                 .foregroundColor(.white.opacity(0.2))
                             Text("\(toolName): \(lastMsg)")
-                                .font(.system(size: 9))
-                                .foregroundColor(.white.opacity(0.3))
+                                .notchFont(9)
+                                .notchSecondaryForeground()
                                 .lineLimit(1)
                         }
                     }
@@ -721,13 +721,13 @@ struct InstanceRow: View {
                     if isWaitingForApproval, let options = askUserOptions {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(L10n.claudeNeedsInput)
-                                .font(.system(size: 9))
+                                .notchFont(9)
                                 .foregroundColor(TerminalColors.amber.opacity(0.7))
 
                             HStack(spacing: 6) {
                                 ForEach(Array(options.prefix(3).enumerated()), id: \.offset) { index, option in
                                     Text(option.label)
-                                        .font(.system(size: 9, weight: .medium))
+                                        .notchFont(9, weight: .medium)
                                         .foregroundColor(.white.opacity(0.8))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 4)
@@ -749,7 +749,7 @@ struct InstanceRow: View {
                                 }
 
                                 Image(systemName: "terminal")
-                                    .font(.system(size: 9))
+                                    .notchFont(9)
                                     .foregroundColor(TerminalColors.amber.opacity(0.5))
                                     .frame(width: 20, height: 20)
                                     .background(
@@ -929,25 +929,25 @@ struct InstanceRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 2) {
                     Text(L10n.you)
-                        .font(.system(size: 9))
-                        .foregroundColor(.white.opacity(0.35))
+                        .notchFont(9)
+                        .notchSecondaryForeground()
                     Text(MCPToolFormatter.formatToolName(toolName))
-                        .font(.system(size: 9))
+                        .notchFont(9)
                         .foregroundColor(.white.opacity(0.55))
                         .lineLimit(1)
                 }
                 HStack(spacing: 2) {
                     Text("AI ")
-                        .font(.system(size: 9, weight: .medium))
+                        .notchFont(9, weight: .medium)
                         .foregroundColor(Self.cyanColor.opacity(0.7))
                     if isInteractiveTool {
                         Text(L10n.needsInput)
-                            .font(.system(size: 9))
+                            .notchFont(9)
                             .foregroundColor(Self.cyanColor.opacity(0.5))
                             .lineLimit(1)
                     } else if let input = session.pendingToolInput {
                         Text(input)
-                            .font(.system(size: 9))
+                            .notchFont(9)
                             .foregroundColor(Self.cyanColor.opacity(0.5))
                             .lineLimit(1)
                     }
@@ -961,20 +961,20 @@ struct InstanceRow: View {
                     // Line 1: user question
                     HStack(spacing: 0) {
                         Text(L10n.you)
-                            .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.35))
+                            .notchFont(9)
+                            .notchSecondaryForeground()
                         Text(parts[0])
-                            .font(.system(size: 9))
+                            .notchFont(9)
                             .foregroundColor(.white.opacity(0.55))
                             .lineLimit(1)
                     }
                     // Line 2: AI reply
                     HStack(spacing: 0) {
                         Text("AI ")
-                            .font(.system(size: 9, weight: .medium))
+                            .notchFont(9, weight: .medium)
                             .foregroundColor(Self.cyanColor.opacity(0.7))
                         Text(parts[1])
-                            .font(.system(size: 9))
+                            .notchFont(9)
                             .foregroundColor(Self.cyanColor.opacity(0.45))
                             .lineLimit(1)
                     }
@@ -982,10 +982,10 @@ struct InstanceRow: View {
                     // Single line summary — show as AI line
                     HStack(spacing: 0) {
                         Text("AI ")
-                            .font(.system(size: 9, weight: .medium))
+                            .notchFont(9, weight: .medium)
                             .foregroundColor(Self.cyanColor.opacity(0.7))
                         Text(summary)
-                            .font(.system(size: 9))
+                            .notchFont(9)
                             .foregroundColor(Self.cyanColor.opacity(0.45))
                             .lineLimit(1)
                     }
@@ -998,11 +998,11 @@ struct InstanceRow: View {
                 case "user":
                     HStack(spacing: 0) {
                         Text(L10n.you)
-                            .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.35))
+                            .notchFont(9)
+                            .notchSecondaryForeground()
                         if let msg = session.lastMessage {
                             Text(msg)
-                                .font(.system(size: 9))
+                                .notchFont(9)
                                 .foregroundColor(.white.opacity(0.55))
                                 .lineLimit(1)
                         }
@@ -1010,11 +1010,11 @@ struct InstanceRow: View {
                 case "tool":
                     HStack(spacing: 0) {
                         Text("AI ")
-                            .font(.system(size: 9, weight: .medium))
+                            .notchFont(9, weight: .medium)
                             .foregroundColor(Self.cyanColor.opacity(0.7))
                         if let toolName = session.lastToolName {
                             Text(MCPToolFormatter.formatToolName(toolName))
-                                .font(.system(size: 9))
+                                .notchFont(9)
                                 .foregroundColor(Self.cyanColor.opacity(0.45))
                                 .lineLimit(1)
                         }
@@ -1022,11 +1022,11 @@ struct InstanceRow: View {
                 default:
                     HStack(spacing: 0) {
                         Text("AI ")
-                            .font(.system(size: 9, weight: .medium))
+                            .notchFont(9, weight: .medium)
                             .foregroundColor(Self.cyanColor.opacity(0.7))
                         if let msg = session.lastMessage {
                             Text(msg)
-                                .font(.system(size: 9))
+                                .notchFont(9)
                                 .foregroundColor(Self.cyanColor.opacity(0.45))
                                 .lineLimit(1)
                         }
@@ -1036,10 +1036,10 @@ struct InstanceRow: View {
         } else if let lastMsg = session.lastMessage {
             HStack(spacing: 0) {
                 Text("AI ")
-                    .font(.system(size: 9, weight: .medium))
+                    .notchFont(9, weight: .medium)
                     .foregroundColor(Self.cyanColor.opacity(0.7))
                 Text(lastMsg)
-                    .font(.system(size: 9))
+                    .notchFont(9)
                     .foregroundColor(Self.cyanColor.opacity(0.45))
                     .lineLimit(1)
             }
@@ -1062,18 +1062,18 @@ struct ProjectGroupHeader: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.4))
+                    .notchFont(11, weight: .semibold)
+                    .notchSecondaryForeground()
                     .frame(width: 12)
 
                 Text(group.name)
-                    .font(.system(size: 13, weight: .semibold))
+                    .notchFont(13, weight: .semibold)
                     .foregroundColor(.white.opacity(0.8))
 
                 if group.activeCount > 0 {
                     Text("\(group.activeCount) \(L10n.active)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.6))
+                        .notchFont(11, weight: .medium)
+                        .notchSecondaryForeground()
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(
@@ -1082,8 +1082,8 @@ struct ProjectGroupHeader: View {
                         )
                 } else if group.isArchivable {
                     Text(L10n.archived)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.35))
+                        .notchFont(11, weight: .medium)
+                        .notchSecondaryForeground()
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(
@@ -1131,8 +1131,8 @@ struct InlineApprovalButtons: View {
                 onReject()
             } label: {
                 Text(L10n.deny)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
+                    .notchFont(11, weight: .medium)
+                    .notchSecondaryForeground()
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(Color.white.opacity(0.1))
@@ -1146,7 +1146,7 @@ struct InlineApprovalButtons: View {
                 onApprove()
             } label: {
                 Text(L10n.allow)
-                    .font(.system(size: 11, weight: .medium))
+                    .notchFont(11, weight: .medium)
                     .foregroundColor(.black)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
@@ -1184,7 +1184,7 @@ struct IconButton: View {
             action()
         } label: {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .medium))
+                .notchFont(12, weight: .medium)
                 .foregroundColor(isHovered ? .white.opacity(0.8) : .white.opacity(0.4))
                 .frame(width: 24, height: 24)
                 .background(
@@ -1211,9 +1211,9 @@ struct CompactTerminalButton: View {
         } label: {
             HStack(spacing: 2) {
                 Image(systemName: "terminal")
-                    .font(.system(size: 12, weight: .medium))
+                    .notchFont(12, weight: .medium)
                 Text(L10n.goToTerminal)
-                    .font(.system(size: 13, weight: .medium))
+                    .notchFont(13, weight: .medium)
             }
             .foregroundColor(isEnabled ? .white.opacity(0.9) : .white.opacity(0.3))
             .padding(.horizontal, 6)
@@ -1239,9 +1239,9 @@ struct TerminalButton: View {
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: "terminal")
-                    .font(.system(size: 12, weight: .medium))
+                    .notchFont(12, weight: .medium)
                 Text(L10n.terminal)
-                    .font(.system(size: 13, weight: .medium))
+                    .notchFont(13, weight: .medium)
             }
             .foregroundColor(isEnabled ? .black : .white.opacity(0.4))
             .padding(.horizontal, 10)
@@ -1271,11 +1271,11 @@ struct SubagentListView: View {
                     .padding(.leading, 18)
 
                 Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                    .font(.system(size: 7, weight: .medium))
+                    .notchFont(7, weight: .medium)
                     .foregroundColor(Self.agentColor.opacity(0.4))
 
                 Text("Subagents (\(session.subagentState.activeTasks.count))")
-                    .font(.system(size: 9, weight: .medium))
+                    .notchFont(9, weight: .medium)
                     .foregroundColor(Self.agentColor.opacity(0.5))
 
                 Spacer()
@@ -1307,7 +1307,7 @@ struct SubagentListView: View {
                             .frame(width: 4, height: 4)
 
                         Text(task.description ?? "Agent")
-                            .font(.system(size: 9))
+                            .notchFont(9)
                             .foregroundColor(.white.opacity(0.45))
                             .lineLimit(1)
 
@@ -1315,7 +1315,7 @@ struct SubagentListView: View {
 
                         if !task.subagentTools.isEmpty {
                             Text("\(task.subagentTools.count) tools")
-                                .font(.system(size: 8))
+                                .notchFont(8)
                                 .foregroundColor(.white.opacity(0.2))
                         }
                     }
@@ -1388,13 +1388,13 @@ struct UsageStatsBar: View {
                 // Session time
                 if totalMinutes > 0 {
                     Text(formatTime(totalMinutes))
-                        .font(.system(size: 8, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.3))
+                        .notchFont(8, weight: .regular, design: .monospaced)
+                        .notchSecondaryForeground()
                 }
 
                 // Refresh
                 Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 7))
+                    .notchFont(7)
                     .foregroundColor(.white.opacity(monitor.isLoading ? 0.5 : 0.2))
                     .rotationEffect(.degrees(monitor.isLoading ? 360 : 0))
                     .animation(monitor.isLoading ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: monitor.isLoading)
@@ -1437,17 +1437,17 @@ struct UsageStatsBar: View {
             // Label + percentage
             HStack(spacing: 3) {
                 Text(label)
-                    .font(.system(size: 7, weight: .bold))
-                    .foregroundColor(.white.opacity(0.3))
+                    .notchFont(7, weight: .bold)
+                    .notchSecondaryForeground()
                 Text("\(pct)%")
-                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .notchFont(9, weight: .semibold, design: .monospaced)
                     .foregroundColor(color)
                     .opacity(shouldBlink(pct) ? (pulsePhase ? 1.0 : 0.3) : 1.0)
                 if let resetAt = resetAt {
                     let remaining = resetAt.timeIntervalSinceNow
                     if remaining > 0 {
                         Text(formatResetShort(remaining))
-                            .font(.system(size: 7))
+                            .notchFont(7)
                             .foregroundColor(.white.opacity(0.2))
                     }
                 }
