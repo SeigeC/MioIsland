@@ -12,8 +12,8 @@ struct AskUserQuestionView: View {
     let session: SessionState
     let context: QuestionContext
     @ObservedObject var sessionMonitor: ClaudeSessionMonitor
-    @State private var customText: String = ""
-    @State private var hoveredKey: String? = nil  // "questionIdx-optionIdx" to scope hover per question
+    @State private var customTexts: [Int: String] = [:]  // per-question custom text
+    @State private var hoveredKey: String? = nil
     @State private var isSending: Bool = false
 
     var body: some View {
@@ -41,12 +41,6 @@ struct AskUserQuestionView: View {
 
             Spacer(minLength: 4)
 
-            // Custom text input — only show for questions with 3+ options
-            if hasCustomTextOption {
-                customInputBar
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 6)
-            }
 
             // Bottom bar: multi-question gets Submit/Cancel, single gets Jump to Terminal
             if context.questions.count > 1 {
@@ -107,7 +101,7 @@ struct AskUserQuestionView: View {
         // Reset state when a new question arrives (different toolUseId)
         .onChange(of: context.toolUseId) { _ in
             isSending = false
-            customText = ""
+            customTexts = [:]
             hoveredKey = nil
         }
     }
@@ -124,6 +118,11 @@ struct AskUserQuestionView: View {
 
             ForEach(Array(question.options.enumerated()), id: \.offset) { index, option in
                 optionRow(questionIndex: questionIndex, optionIndex: index + 1, option: option, optionCount: question.options.count)
+            }
+
+            // Inline "Other" input for this question (only if 3+ options)
+            if question.options.count >= 3 {
+                inlineOtherInput(questionIndex: questionIndex, optionCount: question.options.count)
             }
         }
     }
@@ -190,36 +189,41 @@ struct AskUserQuestionView: View {
 
     // MARK: - Custom Input
 
-    private var customInputBar: some View {
+    /// Inline "Other" input at the end of a question's options
+    @ViewBuilder
+    private func inlineOtherInput(questionIndex: Int, optionCount: Int) -> some View {
         HStack(spacing: 6) {
-            TextField("Type your answer...", text: $customText)
-                .textFieldStyle(.plain)
-                .notchFont(11)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.white.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
-                        )
-                )
-                .onSubmit { submitCustomText() }
+            TextField("Other...", text: Binding(
+                get: { customTexts[questionIndex] ?? "" },
+                set: { customTexts[questionIndex] = $0 }
+            ))
+            .textFieldStyle(.plain)
+            .notchFont(11)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.white.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                    )
+            )
+            .onSubmit { submitOtherForQuestion(questionIndex: questionIndex, optionCount: optionCount) }
 
             Button {
-                submitCustomText()
+                submitOtherForQuestion(questionIndex: questionIndex, optionCount: optionCount)
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: 18))
                     .foregroundColor(
-                        customText.isEmpty || isSending
+                        (customTexts[questionIndex] ?? "").isEmpty || isSending
                             ? Color.white.opacity(0.15)
                             : TerminalColors.amber
                     )
             }
             .buttonStyle(.plain)
-            .disabled(customText.isEmpty || isSending)
+            .disabled((customTexts[questionIndex] ?? "").isEmpty || isSending)
         }
     }
 
@@ -249,12 +253,6 @@ struct AskUserQuestionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-
-    /// Whether any question has enough options to warrant a custom text input.
-    /// Claude Code adds "Type something" for questions with 3+ options.
-    private var hasCustomTextOption: Bool {
-        context.questions.contains { $0.options.count >= 3 }
     }
 
     // MARK: - Terminal Sending
@@ -297,26 +295,31 @@ struct AskUserQuestionView: View {
         DebugLogger.log("AskUser", "Cancelled submit")
     }
 
-    private func submitCustomText() {
-        guard !customText.isEmpty, !isSending else { return }
+    /// Submit custom text for a specific question.
+    /// "Type something" is option (optionCount + 1) in the CLI.
+    private func submitOtherForQuestion(questionIndex: Int, optionCount: Int) {
+        let text = customTexts[questionIndex] ?? ""
+        guard !text.isEmpty, !isSending else { return }
         isSending = true
-        let text = customText
-        let optionCount = context.questions.first?.options.count ?? 0
-        DebugLogger.log("AskUser", "Custom text: \(text)")
+        DebugLogger.log("AskUser", "Q\(questionIndex) custom text: \(text)")
         Task {
             let cwd = session.cwd
-            // Navigate to "Type something" option
+            // Navigate to "Type something" option (after all regular options)
             for _ in 0..<optionCount {
                 performGhosttyAction("csi:B", cwd: cwd)
             }
             try? await Task.sleep(nanoseconds: 100_000_000)
-            performGhosttyAction("text:\\r", cwd: cwd)
+            performGhosttyAction("text:\\r", cwd: cwd) // Select "Type something"
             // Wait for text input prompt
             try? await Task.sleep(nanoseconds: 500_000_000)
             // Type the custom text + Enter
             let escaped = text.replacingOccurrences(of: "\\", with: "\\\\")
                 .replacingOccurrences(of: "\"", with: "\\\"")
             performGhosttyAction("text:\(escaped)\\r", cwd: cwd)
+
+            // Reset for next question
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            isSending = false
         }
     }
 
