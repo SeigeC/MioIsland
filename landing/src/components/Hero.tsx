@@ -44,6 +44,8 @@ export default function Hero() {
                 {t("hero.subtitle1")}
                 <br />
                 {t("hero.subtitle2")}
+                <br />
+                <span className="text-purple-400/80">{t("hero.subtitle3")}</span>
               </p>
 
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center px-4 sm:px-0" style={{ animation: 'heroEnter 1s ease-out 0.3s both' }}>

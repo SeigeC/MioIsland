@@ -14,8 +14,9 @@ const translations = {
   "hero.title1": { zh: "MacBook 灵动岛", en: "Dynamic Island" },
   "hero.title2": { zh: "变身 ", en: "for your " },
   "hero.title3": { zh: "AI 指挥台", en: "Claude Code" },
-  "hero.subtitle1": { zh: "让你的刘海不再浪费。Mac 灵动岛 + iPhone App，Apple 全生态覆盖。", en: "Stay in flow while your agents keep working. Mac notch + iPhone app — full Apple ecosystem." },
+  "hero.subtitle1": { zh: "让你的刘海不再浪费。", en: "Stay in flow while your agents keep working." },
   "hero.subtitle2": { zh: "实时监控 Claude Code 会话、一键审批、秒回终端。", en: "Monitor, approve, and jump back — right from the notch." },
+  "hero.subtitle3": { zh: "Mac 灵动岛 + iPhone App — Apple 全生态。", en: "Mac Dynamic Island + iPhone App — full Apple ecosystem." },
   "hero.download": { zh: "Mac 免费下载", en: "Download for Mac" },
   "hero.star": { zh: "GitHub Star", en: "Star on GitHub" },
 
