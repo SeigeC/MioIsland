@@ -129,7 +129,7 @@ const translations = {
   "codelight.f7.title": { zh: "端到端加密", en: "E2E Encrypted" },
   "codelight.f7.desc": { zh: "可自托管、零知识中继，数据只属于你", en: "Self-hostable, zero-knowledge relay — your data stays yours" },
   "codelight.status": { zh: "App Store 已上架（中国大陆地区暂不可用）", en: "Available on the App Store (not available in mainland China)" },
-  "codelight.star": { zh: "给 Code Light 加 Star 获取发布通知", en: "Star Code Light to get notified" },
+  "codelight.star": { zh: "GitHub Star · 获取最新消息", en: "GitHub Star · Stay Updated" },
   "codelight.appstore": { zh: "App Store 下载", en: "Download on App Store" },
   "codelight.regionNote": { zh: "因政策原因，中国大陆 App Store 暂无法上架。可切换至其他地区账号下载。", en: "Due to regional restrictions, Code Light is not available on the mainland China App Store. Switch to another region to download." },
 
