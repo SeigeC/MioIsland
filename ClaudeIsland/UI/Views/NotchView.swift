@@ -138,23 +138,27 @@ struct NotchView: View {
         )
     }
 
-    /// Extra width for expanding activities (like Dynamic Island)
-    /// Compact mode: minimal width (dot + icon + count only), but wide enough to clear the notch
-    /// Full mode: original 240px behavior
+    /// Extra width for expanding activities (like Dynamic Island).
+    ///
+    /// Reads from `notchStore.customization.maxWidth` so the live edit
+    /// "resize" arrow buttons visibly grow / shrink the notch as the
+    /// user drives the slider. The user's `maxWidth` is the total
+    /// closed-with-content width — subtracting the hardware notch
+    /// width yields the wing expansion.
+    ///
+    /// Compact mode caps at 100pt regardless of the user's max so the
+    /// dot+icon+count layout never overflows the visible notch ring.
+    /// Full mode honors the user's max directly. Idle state (no
+    /// active sessions) is always 0 — the notch shrinks tight around
+    /// the hardware shape.
     private var expansionWidth: CGFloat {
+        guard hasActiveSessions else { return 0 }
+        let userMax = notchStore.customization.maxWidth
+        let userExpansion = max(0, userMax - closedNotchSize.width)
         if compactCollapsed {
-            // Compact: dot + icon + count, must be wide enough to not be hidden by notch
-            if hasActiveSessions {
-                return 100
-            }
-            return 0
-        } else {
-            // Full: original behavior
-            if hasActiveSessions {
-                return 240
-            }
-            return 0
+            return min(100, userExpansion)
         }
+        return userExpansion
     }
 
     private var notchSize: CGSize {
@@ -307,6 +311,12 @@ struct NotchView: View {
         }
         .onChange(of: expansionWidth) { _, newWidth in
             viewModel.currentExpansionWidth = newWidth
+        }
+        .task {
+            // Sync the initial expansion width into the view model on
+            // first appearance so the hit-test region matches the
+            // visible notch from the very first frame.
+            viewModel.currentExpansionWidth = expansionWidth
         }
     }
 

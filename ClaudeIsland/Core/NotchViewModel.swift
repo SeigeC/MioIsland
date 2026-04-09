@@ -199,9 +199,33 @@ class NotchViewModel: ObservableObject {
     /// The chat session we're viewing (persists across close/open)
     private var currentChatSession: SessionState?
 
+    /// Pull the user's saved horizontal offset, clamped against the
+    /// current screen + visible notch width so a value persisted on
+    /// a wider external display doesn't push hit-testing off-screen
+    /// when the smaller built-in is the active one. Mirrors the same
+    /// clamp NotchView applies for `.offset(x:)` rendering.
+    private var currentHorizontalOffset: CGFloat {
+        let stored = NotchCustomizationStore.shared.customization.horizontalOffset
+        let runtime: CGFloat = status == .opened ? openedSize.width : (geometry.deviceNotchRect.width + currentExpansionWidth)
+        return NotchHardwareDetector.clampedHorizontalOffset(
+            storedOffset: stored,
+            runtimeWidth: runtime,
+            screenWidth: geometry.screenRect.width
+        )
+    }
+
     private func handleMouseMove(_ location: CGPoint) {
-        let inNotch = geometry.isPointInNotch(location, expansionWidth: currentExpansionWidth)
-        let inOpened = status == .opened && geometry.isPointInOpenedPanel(location, size: openedSize)
+        let offset = currentHorizontalOffset
+        let inNotch = geometry.isPointInNotch(
+            location,
+            expansionWidth: currentExpansionWidth,
+            horizontalOffset: offset
+        )
+        let inOpened = status == .opened && geometry.isPointInOpenedPanel(
+            location,
+            size: openedSize,
+            horizontalOffset: offset
+        )
 
         let newHovering = inNotch || inOpened
 
@@ -228,15 +252,16 @@ class NotchViewModel: ObservableObject {
     private func handleMouseDown() {
         let location = NSEvent.mouseLocation
 
+        let offset = currentHorizontalOffset
         switch status {
         case .opened:
             // Close if click is outside the panel content area
-            if geometry.isPointOutsidePanel(location, size: openedSize) {
+            if geometry.isPointOutsidePanel(location, size: openedSize, horizontalOffset: offset) {
                 notchClose()
                 repostClickAt(location)
             }
         case .closed, .popping:
-            if geometry.isPointInNotch(location, expansionWidth: currentExpansionWidth) {
+            if geometry.isPointInNotch(location, expansionWidth: currentExpansionWidth, horizontalOffset: offset) {
                 notchOpen(reason: .click)
             }
         }
