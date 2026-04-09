@@ -120,8 +120,10 @@ const translations = {
   "codelight.f5": { zh: "图片附件 — 拍照发给 Claude", en: "Image attachments — take photos and send to Claude" },
   "codelight.f6": { zh: "永久 6 位配对码 — 重启不变、多设备配对", en: "Permanent 6-char pair code — survives restarts, multi-device" },
   "codelight.f7": { zh: "端到端加密 — 可自托管、零知识中继", en: "E2E encrypted — self-hostable, zero-knowledge relay" },
-  "codelight.status": { zh: "已进入 TestFlight，App Store 提交中", en: "In TestFlight, App Store submission in flight" },
+  "codelight.status": { zh: "App Store 已上架（中国大陆地区暂不可用）", en: "Available on the App Store (not available in mainland China)" },
   "codelight.star": { zh: "给 Code Light 加 Star 获取发布通知", en: "Star Code Light to get notified" },
+  "codelight.appstore": { zh: "App Store 下载", en: "Download on App Store" },
+  "codelight.regionNote": { zh: "因政策原因，中国大陆 App Store 暂无法上架。可切换至其他地区账号下载。", en: "Due to regional restrictions, Code Light is not available on the mainland China App Store. Switch to another region to download." },
 
   // Footer
   "footer.madeWith": { zh: "Made with", en: "Made with" },

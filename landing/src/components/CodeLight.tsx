@@ -1,4 +1,4 @@
-import { Smartphone, Star } from "lucide-react"
+import { Smartphone, Star, Download } from "lucide-react"
 import { useI18n } from "../lib/i18n"
 
 const GithubIcon = ({ size = 16 }: { size?: number }) => (
@@ -86,20 +86,34 @@ export default function CodeLight() {
         {/* Status + CTA */}
         <div className="text-center" style={{ animation: 'heroEnter 0.8s ease-out 0.4s both' }}>
           <p className="text-xs text-text-muted mb-5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-400/10 border border-green-400/20 text-green-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
               {t("codelight.status")}
             </span>
           </p>
 
-          <a
-            href="https://github.com/xmqywx/CodeLight"
-            className="inline-flex items-center gap-2.5 glass px-8 py-3.5 rounded-xl font-mono text-sm text-purple-300 transition-all duration-300 hover:scale-[1.03] hover:text-text-primary hover:shadow-[0_0_30px_rgba(124,58,237,0.15)]"
-          >
-            <GithubIcon size={16} />
-            <Star size={14} />
-            {t("codelight.star")}
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href="https://apps.apple.com/us/app/code-light/id6761744871"
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl font-mono text-sm text-white bg-purple-600 transition-all duration-300 hover:scale-[1.03] hover:bg-purple-500 hover:shadow-[0_0_30px_rgba(124,58,237,0.3)]"
+            >
+              <Download size={16} />
+              {t("codelight.appstore")}
+            </a>
+
+            <a
+              href="https://github.com/xmqywx/CodeLight"
+              className="inline-flex items-center gap-2.5 glass px-8 py-3.5 rounded-xl font-mono text-sm text-purple-300 transition-all duration-300 hover:scale-[1.03] hover:text-text-primary hover:shadow-[0_0_30px_rgba(124,58,237,0.15)]"
+            >
+              <GithubIcon size={16} />
+              <Star size={14} />
+              {t("codelight.star")}
+            </a>
+          </div>
+
+          <p className="text-xs text-text-muted/60 mt-4 max-w-md mx-auto">
+            {t("codelight.regionNote")}
+          </p>
         </div>
       </div>
     </section>
