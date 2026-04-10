@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="ClaudeIsland/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" width="128" height="128" alt="Pounce" />
+<img src="ClaudeIsland/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" width="128" height="128" alt="MioIsland" />
 
-# Pounce
+# MioIsland
 
 **Your AI agents live in the notch.**
 
@@ -12,11 +12,11 @@ This is a passion project built purely out of personal interest. It is **free an
 
 English | [中文](README.zh-CN.md)
 
-[![GitHub stars](https://img.shields.io/github/stars/IsleOS/Pounce?style=social)](https://github.com/IsleOS/Pounce/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/MioMioOS/MioIsland?style=social)](https://github.com/MioMioOS/MioIsland/stargazers)
 
-[![Website](https://img.shields.io/badge/website-IsleOS.github.io%2FPounce-7c3aed?style=flat-square)](https://IsleOS.github.io/Pounce/)
-[![Release](https://img.shields.io/github/v/release/IsleOS/Pounce?style=flat-square&color=4ADE80)](https://github.com/IsleOS/Pounce/releases)
-[![macOS](https://img.shields.io/badge/macOS-15%2B-black?style=flat-square&logo=apple)](https://github.com/IsleOS/Pounce/releases)
+[![Website](https://img.shields.io/badge/website-IsleOS.github.io%2FMioIsland-7c3aed?style=flat-square)](https://MioMioOS.github.io/MioIsland/)
+[![Release](https://img.shields.io/github/v/release/MioMioOS/MioIsland?style=flat-square&color=4ADE80)](https://github.com/MioMioOS/MioIsland/releases)
+[![macOS](https://img.shields.io/badge/macOS-15%2B-black?style=flat-square&logo=apple)](https://github.com/MioMioOS/MioIsland/releases)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC%204.0-green?style=flat-square)](LICENSE.md)
 
 **If you find this useful, please give it a star! It keeps us motivated to improve.**
@@ -36,7 +36,7 @@ English | [中文](README.zh-CN.md)
 > **First launch — choose one:**
 >
 > **Option A — Right-click to open (recommended):**
-> 1. Download `Pounce-vX.Y.Z.zip` and unzip
+> 1. Download `MioIsland-vX.Y.Z.zip` and unzip
 > 2. Move `Code Island.app` to `/Applications`
 > 3. **Right-click** the app → **Open** → click **Open** in the dialog
 > 4. Subsequent launches will work normally with a double-click
@@ -59,7 +59,7 @@ English | [中文](README.zh-CN.md)
 > **首次打开 —— 任选一种方式：**
 >
 > **方式 A —— 右键打开（推荐）：**
-> 1. 下载 `Pounce-vX.Y.Z.zip` 并解压
+> 1. 下载 `MioIsland-vX.Y.Z.zip` 并解压
 > 2. 把 `Code Island.app` 拖到 `/应用程序`（Applications）
 > 3. **右键** 应用 → **打开** → 在弹窗中再次点 **打开**
 > 4. 之后双击即可正常启动，不会再有提示
@@ -75,7 +75,7 @@ English | [中文](README.zh-CN.md)
 
 <div align="center">
 
-## 📱 **[Code Light](https://github.com/IsleOS/CodeLight)** — your iPhone companion 🐱✨
+## 📱 **[Code Light](https://github.com/MioMioOS/CodeLight)** — your iPhone companion 🐱✨
 
 [![Download on the App Store](https://img.shields.io/badge/Download_on_the-App_Store-0D96F6?style=for-the-badge&logo=appstore&logoColor=white)](https://apps.apple.com/us/app/code-light/id6761744871)
 
@@ -110,32 +110,32 @@ English | [中文](README.zh-CN.md)
 
 ### What the Code Light Sync module unlocks
 
-Pounce's **Code Light Sync module** turns the notch app into a bidirectional bridge between your Mac, the cloud, and your iPhone:
+MioIsland's **Code Light Sync module** turns the notch app into a bidirectional bridge between your Mac, the cloud, and your iPhone:
 
 | Feature | What it means for you |
 |---|---|
 | 🏝️ **Real Dynamic Island** | A live ActivityKit activity reflects "what Claude is doing right now" in your iPhone's notch — phase, tool name, elapsed time |
-| 🎯 **Pinpoint terminal routing** | Phone messages land in the **exact** Claude pane you picked. Pounce walks `ps -Ax` → finds the live `claude --session-id` PID → reads `CMUX_WORKSPACE_ID`/`CMUX_SURFACE_ID` env vars → `cmux send --workspace --surface`. Zero guessing |
-| ⚡ **Slash commands round-trip** | Type `/model`, `/cost`, `/usage`, `/clear` from the phone. Pounce snapshots the cmux pane, injects the command, diffs the output, and ships it back as a chat message. You see the response as if it were a Claude reply |
-| 🚀 **Remote session launch** | Tap **+** on the phone, pick a launch preset (`claude --dangerously-skip-permissions --chrome`), pick a project — Pounce spawns a brand-new cmux workspace running that command |
-| 📷 **Image attachments** | Take photos with the iPhone camera; Pounce downloads the blob and pastes via `NSPasteboard` + AppleScript Cmd+V into the cmux pane |
-| 🔐 **Permanent 6-char pair code** | Each Mac gets a permanent shortCode (lazy-allocated, never rotates). Restart Pounce — code is the same. Pair another iPhone — same code, same Mac |
+| 🎯 **Pinpoint terminal routing** | Phone messages land in the **exact** Claude pane you picked. MioIsland walks `ps -Ax` → finds the live `claude --session-id` PID → reads `CMUX_WORKSPACE_ID`/`CMUX_SURFACE_ID` env vars → `cmux send --workspace --surface`. Zero guessing |
+| ⚡ **Slash commands round-trip** | Type `/model`, `/cost`, `/usage`, `/clear` from the phone. MioIsland snapshots the cmux pane, injects the command, diffs the output, and ships it back as a chat message. You see the response as if it were a Claude reply |
+| 🚀 **Remote session launch** | Tap **+** on the phone, pick a launch preset (`claude --dangerously-skip-permissions --chrome`), pick a project — MioIsland spawns a brand-new cmux workspace running that command |
+| 📷 **Image attachments** | Take photos with the iPhone camera; MioIsland downloads the blob and pastes via `NSPasteboard` + AppleScript Cmd+V into the cmux pane |
+| 🔐 **Permanent 6-char pair code** | Each Mac gets a permanent shortCode (lazy-allocated, never rotates). Restart MioIsland — code is the same. Pair another iPhone — same code, same Mac |
 | 🖥️ **One Mac, many iPhones · One iPhone, many Macs** | DeviceLink graph in the server. A Mac can be paired with N iPhones; an iPhone can be paired with M Macs across different backend servers |
-| 🔄 **60-second echo dedup ring** | Phone-injected text doesn't bounce back as a duplicate when Pounce's JSONL watcher re-detects it |
+| 🔄 **60-second echo dedup ring** | Phone-injected text doesn't bounce back as a duplicate when MioIsland's JSONL watcher re-detects it |
 | 🌐 **Self-hostable, zero-knowledge** | Run your own CodeLight Server on any VPS. The relay stores only encrypted blobs |
 
 </div>
 
 > **Status**: Code Light is **live on the [App Store](https://apps.apple.com/us/app/code-light/id6761744871)** (147 countries/regions, China mainland pending ICP filing).
-> The Pounce Sync module is included in v1.9.0+. ⭐ **[Star Pounce](https://github.com/IsleOS/Pounce)** + ⭐ **[Star Code Light](https://github.com/IsleOS/CodeLight)** to stay updated.
+> The MioIsland Sync module is included in v1.9.0+. ⭐ **[Star MioIsland](https://github.com/MioMioOS/MioIsland)** + ⭐ **[Star Code Light](https://github.com/MioMioOS/CodeLight)** to stay updated.
 
 ---
 
-## 🐱 What Pounce looks like today
+## 🐱 What MioIsland looks like today
 
 <div align="center">
 
-<img src="marketing/island/notch-collapsed.png" width="900" alt="Pounce in the MacBook notch — pixel cat + 'hi' status + 'carey ×3' active session badge"/>
+<img src="marketing/island/notch-collapsed.png" width="900" alt="MioIsland in the MacBook notch — pixel cat + 'hi' status + 'carey ×3' active session badge"/>
 
 *The collapsed notch — pixel cat companion, current status text, and an active-session badge. Always visible, never in the way.*
 
@@ -145,7 +145,7 @@ Pounce's **Code Light Sync module** turns the notch app into a bidirectional bri
 <tr>
 <td width="33%"><img src="marketing/island/session-list.png" alt="Expanded session list with two active Claude Code sessions, cmux badges, duration, and live usage bars"/></td>
 <td width="33%"><img src="marketing/island/buddy-card.png" alt="Claude Code buddy card — LEGENDARY Octopus species with 5 stat bars (DBG/PAT/CHS/WIS/SNK), ASCII art sprite, and personality blurb"/></td>
-<td width="33%"><img src="marketing/island/settings-menu.png" alt="Pounce settings menu — Screen / Notification Sound / Language pickers, Pixel Cat / Smart Suppression / Auto-Collapse / Hooks toggles, Pair iPhone Online status, Launch Presets entry"/></td>
+<td width="33%"><img src="marketing/island/settings-menu.png" alt="MioIsland settings menu — Screen / Notification Sound / Language pickers, Pixel Cat / Smart Suppression / Auto-Collapse / Hooks toggles, Pair iPhone Online status, Launch Presets entry"/></td>
 </tr>
 <tr>
 <td align="center"><b>📋 Live session list</b><br><sub>cmux jump · usage bars</sub></td>
@@ -246,7 +246,7 @@ Toggle between flat list and project-grouped view:
 
 ### Code Light Sync (iPhone companion)
 
-Pounce's **sync module** is the bridge that makes the [Code Light](https://github.com/IsleOS/CodeLight) iPhone companion possible. Open `Pair iPhone` from the notch menu to begin.
+MioIsland's **sync module** is the bridge that makes the [Code Light](https://github.com/MioMioOS/CodeLight) iPhone companion possible. Open `Pair iPhone` from the notch menu to begin.
 
 <details>
 <summary><b>Technical details (click to expand)</b></summary>
@@ -257,11 +257,11 @@ Each Mac is identified on the server by a **permanent 6-character `shortCode`** 
 - A QR code (scan with the iPhone's camera)
 - The 6-character code in large monospace (type it in if you don't want to scan)
 
-Both paths converge on the same `POST /v1/pairing/code/redeem` endpoint. The same code can pair as many iPhones as you want — it never expires, doesn't change when you restart Pounce, and survives upgrades.
+Both paths converge on the same `POST /v1/pairing/code/redeem` endpoint. The same code can pair as many iPhones as you want — it never expires, doesn't change when you restart MioIsland, and survives upgrades.
 
 #### Phone → terminal routing
 
-Phone messages have to land in the **exact** Claude Code terminal that the user picked. Pounce's `TerminalWriter` does this with zero guessing:
+Phone messages have to land in the **exact** Claude Code terminal that the user picked. MioIsland's `TerminalWriter` does this with zero guessing:
 
 1. `ps -Ax` to find the `claude --session-id <UUID>` process matching the message's session tag
 2. `ps -E -p <pid>` to read `CMUX_WORKSPACE_ID` and `CMUX_SURFACE_ID` env vars
@@ -273,7 +273,7 @@ For non-cmux terminals (iTerm2, Ghostty, Terminal.app), `TerminalWriter` falls b
 
 #### Slash commands with captured output
 
-`/model`, `/cost`, `/usage`, `/clear`, `/compact` and friends don't write to Claude's JSONL — their output never reaches the file watcher. Pounce intercepts these specially:
+`/model`, `/cost`, `/usage`, `/clear`, `/compact` and friends don't write to Claude's JSONL — their output never reaches the file watcher. MioIsland intercepts these specially:
 
 1. Snapshot the cmux pane via `cmux capture-pane`
 2. Inject the slash command via `cmux send`
@@ -284,9 +284,9 @@ The phone sees the response inline in chat as if `/cost` were a normal Claude re
 
 #### Remote session launch
 
-The phone can ask Pounce to spawn a brand-new cmux workspace running a configured command. Pounce defines **launch presets** locally — name + command + icon — and uploads them to the server (using Mac-generated UUIDs as primary keys, so the round-trip works without ID translation).
+The phone can ask MioIsland to spawn a brand-new cmux workspace running a configured command. MioIsland defines **launch presets** locally — name + command + icon — and uploads them to the server (using Mac-generated UUIDs as primary keys, so the round-trip works without ID translation).
 
-When the phone calls `POST /v1/sessions/launch {macDeviceId, presetId, projectPath}`, the server emits a `session-launch` socket event scoped to this Mac. Pounce's `LaunchService` looks up the preset locally and runs:
+When the phone calls `POST /v1/sessions/launch {macDeviceId, presetId, projectPath}`, the server emits a `session-launch` socket event scoped to this Mac. MioIsland's `LaunchService` looks up the preset locally and runs:
 
 ```bash
 cmux new-workspace --cwd <projectPath> --command "<preset.command>"
@@ -300,17 +300,17 @@ Add, edit, or remove your own presets from the **Launch Presets** menu in the no
 
 #### Image attachments
 
-Phone-attached images come down as opaque blob IDs (uploaded by the phone via `POST /v1/blobs`). Pounce downloads each blob, focuses the target cmux pane, writes the image to `NSPasteboard` in NSImage / `public.jpeg` / `.tiff` formats, then `System Events keystroke "v" using {command down}` (with a `CGEvent` fallback). Claude sees `[Image #N]` and the trailing text as a single message.
+Phone-attached images come down as opaque blob IDs (uploaded by the phone via `POST /v1/blobs`). MioIsland downloads each blob, focuses the target cmux pane, writes the image to `NSPasteboard` in NSImage / `public.jpeg` / `.tiff` formats, then `System Events keystroke "v" using {command down}` (with a `CGEvent` fallback). Claude sees `[Image #N]` and the trailing text as a single message.
 
-This requires **Accessibility permission** — and because permissions are tracked by the app's signed path, Pounce auto-installs a copy of itself to `/Applications/Code Island.app` so the grant survives Debug rebuilds.
+This requires **Accessibility permission** — and because permissions are tracked by the app's signed path, MioIsland auto-installs a copy of itself to `/Applications/Code Island.app` so the grant survives Debug rebuilds.
 
 #### Project path sync
 
-Pounce uploads the unique `cwd` of every active session every 5 minutes. The phone fetches them from `GET /v1/devices/<macDeviceId>/projects` to populate the "Recent Projects" picker in the launch sheet. No manual configuration.
+MioIsland uploads the unique `cwd` of every active session every 5 minutes. The phone fetches them from `GET /v1/devices/<macDeviceId>/projects` to populate the "Recent Projects" picker in the launch sheet. No manual configuration.
 
 #### Echo loop dedup
 
-Phone sends → server → Pounce pastes → Claude writes to JSONL → file watcher sees a "new user message" → would normally re-upload it → phone gets a duplicate. Fixed with a 60 s TTL `(claudeUuid, text)` ring on the Mac: MessageRelay consumes a matching entry before uploading and skips. No server changes, no localId negotiation.
+Phone sends → server → MioIsland pastes → Claude writes to JSONL → file watcher sees a "new user message" → would normally re-upload it → phone gets a duplicate. Fixed with a 60 s TTL `(claudeUuid, text)` ring on the Mac: MessageRelay consumes a matching entry before uploading and skips. No server changes, no localId negotiation.
 
 #### Multi-iPhone, multi-server
 
@@ -327,15 +327,15 @@ A Mac can be paired with multiple iPhones simultaneously — they all share the 
 | **Group by Project** | Toggle between flat list and project-grouped sessions |
 | **Pixel Cat Mode** | Switch notch icon between pixel cat and buddy emoji animation |
 | **Language** | Auto (system) / English / 中文 |
-| **Launch at Login** | Start Pounce automatically when you log in |
+| **Launch at Login** | Start MioIsland automatically when you log in |
 | **Hooks** | Install/uninstall Claude Code hooks in `~/.claude/settings.json` |
 | **Accessibility** | Grant accessibility permission for terminal window focusing + image-paste keystrokes |
-| **Pair iPhone** | Show the QR + 6-character pairing code for the [Code Light](https://github.com/IsleOS/CodeLight) iPhone app |
+| **Pair iPhone** | Show the QR + 6-character pairing code for the [Code Light](https://github.com/MioMioOS/CodeLight) iPhone app |
 | **Launch Presets** | Manage the named cmux launch commands the iPhone can trigger remotely |
 
 ## Terminal Support
 
-Pounce auto-detects your terminal from the process tree:
+MioIsland auto-detects your terminal from the process tree:
 
 | Terminal | Detection | Jump-to-Tab |
 |----------|-----------|-------------|
@@ -351,13 +351,13 @@ Pounce auto-detects your terminal from the process tree:
 | Cursor | Auto | Activate |
 | Zed | Auto | Activate |
 
-> **Recommended: [cmux](https://cmux.io)** — A modern terminal multiplexer built on Ghostty. Pounce works best with cmux: precise workspace-level jumping, AskUserQuestion quick reply via `cmux send`, and smart popup suppression per workspace tab. If you manage multiple Claude Code sessions, cmux + Pounce is the ideal combo.
+> **Recommended: [cmux](https://cmux.io)** — A modern terminal multiplexer built on Ghostty. MioIsland works best with cmux: precise workspace-level jumping, AskUserQuestion quick reply via `cmux send`, and smart popup suppression per workspace tab. If you manage multiple Claude Code sessions, cmux + MioIsland is the ideal combo.
 >
-> **推荐搭配 [cmux](https://cmux.io)** — 基于 Ghostty 的现代终端复用器。Pounce 与 cmux 配合最佳：精确到 workspace 级别的跳转、AskUserQuestion 快捷回复、智能弹出抑制。多 Claude Code 会话管理的理想组合。
+> **推荐搭配 [cmux](https://cmux.io)** — 基于 Ghostty 的现代终端复用器。MioIsland 与 cmux 配合最佳：精确到 workspace 级别的跳转、AskUserQuestion 快捷回复、智能弹出抑制。多 Claude Code 会话管理的理想组合。
 
 ## Install
 
-**Download** the latest `.dmg` from [Releases](https://github.com/IsleOS/Pounce/releases), open it, drag to Applications.
+**Download** the latest `.dmg` from [Releases](https://github.com/MioMioOS/MioIsland/releases), open it, drag to Applications.
 
 > **macOS Gatekeeper warning:** If you see "Code Island is damaged and can't be opened", run this in Terminal:
 > ```bash
@@ -367,8 +367,8 @@ Pounce auto-detects your terminal from the process tree:
 ### Build from Source
 
 ```bash
-git clone https://github.com/IsleOS/Pounce.git
-cd Pounce
+git clone https://github.com/MioMioOS/MioIsland.git
+cd MioIsland
 xcodebuild -project ClaudeIsland.xcodeproj -scheme ClaudeIsland \
   -configuration Release CODE_SIGN_IDENTITY="-" \
   CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
@@ -383,7 +383,7 @@ xcodebuild -project ClaudeIsland.xcodeproj -scheme ClaudeIsland \
 
 ## How It Works
 
-1. **Zero config** — on first launch, Pounce installs hooks into `~/.claude/settings.json`
+1. **Zero config** — on first launch, MioIsland installs hooks into `~/.claude/settings.json`
 2. **Hook events** — a Python script (`codeisland-state.py`) sends session state to the app via Unix socket (`/tmp/codeisland.sock`)
 3. **Permission approval** — for `PermissionRequest` events, the socket stays open until you click Allow/Deny, then sends the decision back to Claude Code
 4. **Buddy data** — reads `~/.claude.json` for name/personality, runs `buddy-bones.js` with Bun for accurate species/rarity/stats
@@ -391,13 +391,13 @@ xcodebuild -project ClaudeIsland.xcodeproj -scheme ClaudeIsland \
 
 ## i18n
 
-Pounce supports English and Chinese with automatic system locale detection. Override in Settings > Language.
+MioIsland supports English and Chinese with automatic system locale detection. Override in Settings > Language.
 
 ## Contributing / 参与贡献
 
 Contributions are welcome! 欢迎参与！
 
-1. **Report bugs / 提交 Bug** — [Open an issue](https://github.com/IsleOS/Pounce/issues) with steps to reproduce
+1. **Report bugs / 提交 Bug** — [Open an issue](https://github.com/MioMioOS/MioIsland/issues) with steps to reproduce
 2. **Submit a PR / 提交 PR** — Fork → branch → make changes → open a Pull Request
 3. **Suggest features / 建议功能** — Open an issue tagged `enhancement`
 
@@ -419,7 +419,7 @@ Forked from [Claude Island](https://github.com/farouqaldori/claude-island) by fa
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=IsleOS/Pounce&type=Date)](https://star-history.com/#IsleOS/Pounce&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=MioMioOS/MioIsland&type=Date)](https://star-history.com/#MioMioOS/MioIsland&Date)
 
 ## License
 
