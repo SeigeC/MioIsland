@@ -490,12 +490,8 @@ struct NotchView: View {
             if viewModel.openReason == .click || viewModel.openReason == .hover {
                 waitingForInputTimestamps.removeAll()
             }
-            // If a session is waiting for a question, auto-show the question UI
-            // (handles the case where user closed notch accidentally and reopened)
-            if case .instances = viewModel.contentType,
-               let questionSession = sessionMonitor.instances.first(where: { $0.phase.isWaitingForQuestion }) {
-                viewModel.showQuestion(for: questionSession)
-            }
+            // AskUserQuestion stays on instances view — inline chips are accessible
+            // User can click session row to enter detail view if needed
         case .closed:
             // Non-notched devices stay visible (no physical anchor to hover back)
             guard viewModel.hasPhysicalNotch else { return }
@@ -637,23 +633,16 @@ struct NotchView: View {
         let newQuestionIds = currentIds.subtracting(previousWaitingForQuestionIds)
 
         if !newQuestionIds.isEmpty {
-            // Only open question UI if not already showing one — prevents UI swap
-            // that can cause accidental clicks when content changes under the cursor.
-            if case .question = viewModel.contentType {
-                DebugLogger.log("AskUser", "[question] newIds=\(newQuestionIds.count) — already showing question, skipping")
-            } else if let session = questionSessions.first(where: { newQuestionIds.contains($0.stableId) }) {
-                DebugLogger.log("AskUser", "[question] newIds=\(newQuestionIds.count) — opening question UI")
-                viewModel.notchOpen(reason: .notification)
-                viewModel.showQuestion(for: session)
-
-                // Bounce the notch to attract attention
-                DispatchQueue.main.async {
-                    isBouncing = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        isBouncing = false
-                    }
+            // Open notch and bounce to attract attention, but stay on instances view
+            // so inline option chips are accessible (consistent with approval flow).
+            viewModel.notchOpen(reason: .notification)
+            DispatchQueue.main.async {
+                isBouncing = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isBouncing = false
                 }
             }
+            DebugLogger.log("AskUser", "[question] newIds=\(newQuestionIds.count) — bounced notch, staying on instances")
         }
 
         // If no sessions are waiting for question and we're currently showing question content, go back to instances
@@ -1211,7 +1200,8 @@ private struct QuestionContentWrapper: View {
             AskUserQuestionView(
                 session: liveSession,
                 context: ctx,
-                sessionMonitor: sessionMonitor
+                sessionMonitor: sessionMonitor,
+                viewModel: viewModel
             )
         } else {
             ClaudeInstancesView(

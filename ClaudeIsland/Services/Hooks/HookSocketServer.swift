@@ -97,6 +97,13 @@ struct HookEvent: Codable, Sendable {
 struct HookResponse: Codable {
     let decision: String // "allow", "deny", or "ask"
     let reason: String?
+    let answers: [String: String]?
+
+    init(decision: String, reason: String? = nil, answers: [String: String]? = nil) {
+        self.decision = decision
+        self.reason = reason
+        self.answers = answers
+    }
 }
 
 /// Pending permission request waiting for user decision
@@ -226,7 +233,64 @@ class HookSocketServer {
     /// Respond to a pending permission request by toolUseId
     func respondToPermission(toolUseId: String, decision: String, reason: String? = nil) {
         queue.async { [weak self] in
+            self?.sendPermissionResponse(toolUseId: toolUseId, decision: decision, reason: reason, answers: nil)
+        }
+    }
+
+    /// Respond to AskUserQuestion by toolUseId with selected answers
+    func respondToAskUser(toolUseId: String, answers: [String: String]) {
+        queue.async { [weak self] in
+            self?.sendPermissionResponse(toolUseId: toolUseId, decision: "allow", reason: nil, answers: answers)
+        }
+    }
+
+    /// Send a permission decision (allow/deny) by toolUseId
+    func sendPermissionDecision(toolUseId: String, decision: String, reason: String? = nil) {
+        queue.async { [weak self] in
             self?.sendPermissionResponse(toolUseId: toolUseId, decision: decision, reason: reason)
+        }
+    }
+
+    /// Send a user message to a session via a separate outbound socket.
+    /// The WS client listens on /tmp/codeisland-outbound.sock for these messages.
+    func sendUserMessage(sessionId: String, text: String) {
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            let event: [String: Any] = [
+                "type": "user_message",
+                "session_id": sessionId,
+                "text": text,
+            ]
+            guard let data = try? JSONSerialization.data(withJSONObject: event) else { return }
+
+            let path = "/tmp/codeisland-outbound.sock"
+            let sock = Darwin.socket(AF_UNIX, SOCK_STREAM, 0)
+            guard sock >= 0 else {
+                logger.warning("Failed to create outbound socket")
+                return
+            }
+            var addr = sockaddr_un()
+            addr.sun_family = sa_family_t(AF_UNIX)
+            _ = path.withCString { cstr in
+                memcpy(&addr.sun_path, cstr, min(path.utf8.count + 1, MemoryLayout.size(ofValue: addr.sun_path)))
+            }
+            let addrSize = socklen_t(MemoryLayout<sockaddr_un>.size)
+            let connected = withUnsafePointer(to: &addr) { ptr in
+                ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
+                    Darwin.connect(sock, sockPtr, addrSize)
+                }
+            }
+            if connected < 0 {
+                Darwin.close(sock)
+                logger.warning("Could not connect to outbound socket")
+                return
+            }
+            data.withUnsafeBytes { bytes in
+                guard let base = bytes.baseAddress else { return }
+                _ = Darwin.write(sock, base, data.count)
+            }
+            Darwin.close(sock)
+            logger.info("Sent UserMessage for session \(sessionId.prefix(8), privacy: .public)")
         }
     }
 
@@ -481,7 +545,7 @@ class HookSocketServer {
         eventHandler?(event)
     }
 
-    private func sendPermissionResponse(toolUseId: String, decision: String, reason: String?) {
+    private func sendPermissionResponse(toolUseId: String, decision: String, reason: String?, answers: [String: String]? = nil) {
         permissionsLock.lock()
         guard let pending = pendingPermissions.removeValue(forKey: toolUseId) else {
             permissionsLock.unlock()
@@ -490,7 +554,7 @@ class HookSocketServer {
         }
         permissionsLock.unlock()
 
-        let response = HookResponse(decision: decision, reason: reason)
+        let response = HookResponse(decision: decision, reason: reason, answers: answers)
         guard let data = try? JSONEncoder().encode(response) else {
             close(pending.clientSocket)
             return

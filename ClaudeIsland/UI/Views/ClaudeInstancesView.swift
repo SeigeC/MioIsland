@@ -489,6 +489,9 @@ struct InstanceRow: View {
     let onReject: () -> Void
 
     @State private var isHovered = false
+    @State private var multiSelectChoices: Set<Int> = []
+    @State private var otherText: String = ""
+    @State private var showOtherInput: Bool = false
 
     // MARK: - Colors
 
@@ -583,6 +586,15 @@ struct InstanceRow: View {
             }
         }
         return options.isEmpty ? nil : options
+    }
+
+    /// Whether the current AskUserQuestion is multiSelect
+    private var isMultiSelect: Bool {
+        guard session.pendingToolName == "AskUserQuestion",
+              let input = session.activePermission?.toolInput,
+              let questionsValue = input["questions"]?.value as? [[String: Any]],
+              let first = questionsValue.first else { return false }
+        return first["multiSelect"] as? Bool ?? false
     }
 
     /// Animation state derived from session phase
@@ -734,40 +746,120 @@ struct InstanceRow: View {
                                 .notchFont(9)
                                 .foregroundColor(TerminalColors.amber.opacity(0.7))
 
-                            HStack(spacing: 6) {
-                                ForEach(Array(options.prefix(3).enumerated()), id: \.offset) { index, option in
-                                    Text(option.label)
+                            // Option chips (wrap layout)
+                            HStack(spacing: 4) {
+                                ForEach(Array(options.prefix(6).enumerated()), id: \.offset) { index, option in
+                                    if isMultiSelect {
+                                        // Multi-select: toggleable chip
+                                        let isSelected = multiSelectChoices.contains(index)
+                                        Text(option.label)
+                                            .notchFont(9, weight: .medium)
+                                            .foregroundColor(isSelected ? .white : .white.opacity(0.8))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .fill(isSelected ? TerminalColors.amber.opacity(0.4) : TerminalColors.amber.opacity(0.15))
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 4)
+                                                            .strokeBorder(TerminalColors.amber.opacity(isSelected ? 0.6 : 0.2), lineWidth: 0.5)
+                                                    )
+                                            )
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                if multiSelectChoices.contains(index) {
+                                                    multiSelectChoices.remove(index)
+                                                } else {
+                                                    multiSelectChoices.insert(index)
+                                                }
+                                            }
+                                    } else {
+                                        // Single-select: click to send immediately
+                                        Text(option.label)
+                                            .notchFont(9, weight: .medium)
+                                            .foregroundColor(.white.opacity(0.8))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .fill(TerminalColors.amber.opacity(0.15))
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 4)
+                                                            .strokeBorder(TerminalColors.amber.opacity(0.2), lineWidth: 0.5)
+                                                    )
+                                            )
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                DebugLogger.log("AskUser", "Option \(index + 1) tapped: \(option.label)")
+                                                sendOptionViaSocket(index: index + 1, session: session)
+                                            }
+                                    }
+                                }
+
+                                // "Other..." chip
+                                Text("Other...")
+                                    .notchFont(9, weight: .medium)
+                                    .foregroundColor(.white.opacity(0.5))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(Color.white.opacity(0.05))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
+                                            )
+                                    )
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { showOtherInput.toggle() }
+                            }
+
+                            // Multi-select submit button
+                            if isMultiSelect && !multiSelectChoices.isEmpty {
+                                Button {
+                                    sendMultiSelectViaSocket(session: session)
+                                } label: {
+                                    Text("Submit (\(multiSelectChoices.count))")
                                         .notchFont(9, weight: .medium)
-                                        .foregroundColor(.white.opacity(0.8))
-                                        .padding(.horizontal, 8)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 10)
                                         .padding(.vertical, 4)
                                         .background(
                                             RoundedRectangle(cornerRadius: 4)
-                                                .fill(TerminalColors.amber.opacity(0.15))
+                                                .fill(TerminalColors.amber.opacity(0.5))
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            // Other text input
+                            if showOtherInput {
+                                HStack(spacing: 4) {
+                                    TextField("Type your answer...", text: $otherText)
+                                        .textFieldStyle(.plain)
+                                        .notchFont(9)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color.white.opacity(0.06))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 4)
-                                                        .strokeBorder(TerminalColors.amber.opacity(0.2), lineWidth: 0.5)
+                                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
                                                 )
                                         )
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            DebugLogger.log("AskUser", "Option \(index + 1) tapped: \(option.label)")
-                                            Task {
-                                                await sendOptionToTerminal(index: index + 1, session: session)
-                                            }
-                                        }
-                                }
+                                        .onSubmit { sendOtherViaSocket(session: session) }
 
-                                Image(systemName: "terminal")
-                                    .notchFont(9)
-                                    .foregroundColor(TerminalColors.amber.opacity(0.5))
-                                    .frame(width: 20, height: 20)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(TerminalColors.amber.opacity(0.08))
-                                    )
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { onFocus() }
+                                    Button {
+                                        sendOtherViaSocket(session: session)
+                                    } label: {
+                                        Image(systemName: "arrow.up.circle.fill")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(otherText.isEmpty ? .white.opacity(0.15) : TerminalColors.amber)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(otherText.isEmpty)
+                                }
                             }
                         }
                         .padding(.top, 2)
@@ -826,8 +918,88 @@ struct InstanceRow: View {
 
     // MARK: - AskUserQuestion Response
 
-    /// Send an option selection to the session's terminal
-    private func sendOptionToTerminal(index: Int, session: SessionState) async {
+    /// Send an option selection back via the hook socket (works for both local and remote sessions)
+    private func sendOptionViaSocket(index: Int, session: SessionState) {
+        guard let permission = session.activePermission,
+              let input = permission.toolInput,
+              let questionsValue = input["questions"]?.value as? [[String: Any]] else {
+            DebugLogger.log("AskUser", "No permission or questions found, falling back to terminal")
+            Task { await sendOptionToTerminalLegacy(index: index, session: session) }
+            return
+        }
+
+        // Build answers map: {"question text": "selected label"}
+        var answers: [String: String] = [:]
+        var optionOffset = 0
+        for q in questionsValue {
+            let questionText = q["question"] as? String ?? ""
+            if let opts = q["options"] as? [[String: Any]] {
+                let optIndex = index - 1 - optionOffset
+                if optIndex >= 0 && optIndex < opts.count {
+                    let selectedLabel = opts[optIndex]["label"] as? String ?? ""
+                    answers[questionText] = selectedLabel
+                    DebugLogger.log("AskUser", "Selected '\(selectedLabel)' for '\(questionText)'")
+                }
+                optionOffset += opts.count
+            }
+        }
+
+        if !answers.isEmpty {
+            HookSocketServer.shared.respondToAskUser(
+                toolUseId: permission.toolUseId,
+                answers: answers
+            )
+            DebugLogger.log("AskUser", "Sent via socket: \(answers)")
+        } else {
+            DebugLogger.log("AskUser", "Could not build answers, falling back to terminal")
+            Task { await sendOptionToTerminalLegacy(index: index, session: session) }
+        }
+    }
+
+    /// Send multi-select answers via socket (comma-separated labels)
+    private func sendMultiSelectViaSocket(session: SessionState) {
+        guard let permission = session.activePermission,
+              let input = permission.toolInput,
+              let questionsValue = input["questions"]?.value as? [[String: Any]] else { return }
+
+        var answers: [String: String] = [:]
+        for q in questionsValue {
+            let questionText = q["question"] as? String ?? ""
+            if let opts = q["options"] as? [[String: Any]] {
+                let selectedLabels = multiSelectChoices.sorted().compactMap { idx -> String? in
+                    guard idx < opts.count else { return nil }
+                    return opts[idx]["label"] as? String
+                }
+                if !selectedLabels.isEmpty {
+                    answers[questionText] = selectedLabels.joined(separator: ", ")
+                }
+            }
+        }
+
+        if !answers.isEmpty {
+            HookSocketServer.shared.respondToAskUser(toolUseId: permission.toolUseId, answers: answers)
+            DebugLogger.log("AskUser", "Multi-select sent via socket: \(answers)")
+            multiSelectChoices.removeAll()
+        }
+    }
+
+    /// Send custom "Other" text via socket
+    private func sendOtherViaSocket(session: SessionState) {
+        guard !otherText.isEmpty,
+              let permission = session.activePermission,
+              let input = permission.toolInput,
+              let questionsValue = input["questions"]?.value as? [[String: Any]],
+              let questionText = questionsValue.first?["question"] as? String else { return }
+
+        let answers = [questionText: otherText]
+        HookSocketServer.shared.respondToAskUser(toolUseId: permission.toolUseId, answers: answers)
+        DebugLogger.log("AskUser", "Other sent via socket: \(answers)")
+        otherText = ""
+        showOtherInput = false
+    }
+
+    /// Legacy: Send option via terminal injection (for local sessions without socket support)
+    private func sendOptionToTerminalLegacy(index: Int, session: SessionState) async {
         let termApp = session.terminalApp?.lowercased() ?? ""
 
         // Try AppleScript for iTerm2 / Terminal.app / Ghostty

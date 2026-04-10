@@ -361,31 +361,36 @@ struct ChatView: View {
         }
     }
 
-    // MARK: - Go To Terminal Bar
+    // MARK: - Message Input Bar
 
     private var goToTerminalBar: some View {
-        HStack(spacing: 10) {
-            Button {
-                Task { await activateTerminal() }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "terminal")
-                        .font(.system(size: 14, weight: .medium))
-                    Text(L10n.goToTerminal)
-                        .font(.system(size: 13, weight: .medium))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+        HStack(spacing: 8) {
+            TextField("Type a message...", text: $inputText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white.opacity(0.12))
+                        .fill(Color.white.opacity(0.08))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .strokeBorder(Color.white.opacity(0.15), lineWidth: 1)
+                                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
                         )
                 )
+                .onSubmit { sendInputMessage() }
+
+            Button {
+                sendInputMessage()
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(
+                        inputText.isEmpty ? Color.white.opacity(0.15) : TerminalColors.amber
+                    )
             }
             .buttonStyle(.plain)
+            .disabled(inputText.isEmpty)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -397,10 +402,88 @@ struct ChatView: View {
                 endPoint: .bottom
             )
             .frame(height: 24)
-            .offset(y: -24) // Push above input bar
+            .offset(y: -24)
             .allowsHitTesting(false)
         }
-        .zIndex(1) // Render above message list
+        .zIndex(1)
+    }
+
+    private func sendInputMessage() {
+        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        inputText = ""
+
+        // AskUserQuestion "Other" answer — works for both local and remote
+        if let permission = session.activePermission,
+           session.pendingToolName == "AskUserQuestion",
+           let input = permission.toolInput,
+           let questionsValue = input["questions"]?.value as? [[String: Any]],
+           let questionText = questionsValue.first?["question"] as? String {
+            HookSocketServer.shared.respondToAskUser(toolUseId: permission.toolUseId, answers: [questionText: text])
+            return
+        }
+
+        // Remote session (no local terminal) — send via Hub
+        if session.terminalApp == nil {
+            HookSocketServer.shared.sendUserMessage(sessionId: session.sessionId, text: text)
+            return
+        }
+
+        // Local session — type into terminal via AppleScript
+        Task {
+            await typeIntoTerminal(text: text)
+        }
+    }
+
+    private func typeIntoTerminal(text: String) async {
+        let termApp = session.terminalApp?.lowercased() ?? ""
+        let escaped = text.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+
+        if termApp.contains("iterm") {
+            let script = """
+            tell application "iTerm2"
+                tell current session of current tab of current window
+                    write text "\(escaped)"
+                end tell
+            end tell
+            """
+            runAppleScript(script)
+        } else if termApp.contains("terminal") && !termApp.contains("wez") {
+            let script = """
+            tell application "Terminal"
+                do script "\(escaped)" in selected tab of front window
+            end tell
+            """
+            runAppleScript(script)
+        } else if CmuxTreeParser.isAvailable {
+            let cwd = session.cwd.replacingOccurrences(of: "\"", with: "\\\"")
+            let script = """
+            tell application "cmux"
+                set targetTerm to (first terminal whose working directory is "\(cwd)")
+                perform action "text:\(escaped)\\r" on targetTerm
+            end tell
+            """
+            runAppleScript(script)
+        } else {
+            await TerminalJumper.shared.jump(to: session)
+        }
+    }
+
+    @discardableResult
+    private func runAppleScript(_ script: String) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
+        }
     }
 
     // MARK: - Approval Bar
